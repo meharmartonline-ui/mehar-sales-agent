@@ -1,8 +1,8 @@
 streamlit
 requests
 pillow
-numpy
 imageio
 imageio-ffmpeg
 gtts
 moviepy
+numpy
