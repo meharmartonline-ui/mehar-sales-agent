@@ -1,87 +1,115 @@
-import streamlit as st, os, asyncio, subprocess
+import streamlit as st, os, asyncio, re
 import edge_tts
 
-st.set_page_config(page_title="MEHAR V88 - LIMIT DROPDOWN", layout="centered")
-st.title("MEHAR V88 - Voice Limit Dropdown 🔥")
-st.success("Ab 15 sec se 10 min tak ka limit select karo!")
+st.set_page_config(page_title="MEHAR V90 - URDU CLEAR FIX", layout="centered")
+st.title("MEHAR V90 - Urdu Saaf Talafuz Fix 🔥")
+st.success("Ab alfaz clear - toote ge nahi!")
 
-# === 1. LIMIT DROPDOWN - AAPKI DEMAND ===
+# === PRONUNCIATION DICTIONARY - ROMAN URDU KO SAHI KAREGA ===
+def fix_urdu_pronunciation(text):
+    # Common galat bole jane wale alfaz ko sahi phonetic me badlo
+    fixes = {
+        "Assalam-o-Alaikum": "As-salamu Alaikum",
+        "Warehmatullahi": "Wa Rahmatullahi",
+        "Wabarakatuhu": "Wa Barakatuhu",
+        "bhaiyon": "bhai-yon",
+        "behnon": "beh-non",
+        "zindagi": "zin-da-gi",
+        "sachi": "sa-chi",
+        "kahani": "ka-ha-ni",
+        "Mehar Mart": "Mehar Mart",
+        "Pure Honey": "Pure Honey",
+        "khalis": "khaa-lis",
+        "shifa": "shi-fa",
+        "Quran": "Quran Pak",
+        "Sallallahu": "Sallallahu Alaihi Wasallam",
+        "thakan": "tha-kan",
+        "immunity": "immunity",
+        "zabardast": "zabardast",
+        "zaiqa": "zai-qa",
+        "faida": "fai-da",
+        "JazakAllah": "Jazak Allah",
+        "InshaAllah": "Insha Allah",
+        "03452352112": "zero three four five, two three five, two one one two",
+    }
+    for wrong, right in fixes.items():
+        text = re.sub(re.escape(wrong), right, text, flags=re.IGNORECASE)
+    
+    # Roman Urdu ko saans ke saath bolo - commas add
+    text = text.replace("  ", " ")
+    text = text.replace(". ", ". , ")
+    text = text.replace("! ", "! , ")
+    text = text.replace("? ", "? , ")
+    # Lambe jumle tod do
+    text = re.sub(r'([a-zA-Z]{15,})', r'\1 ,', text)
+    return text
+
+# === SETTINGS ===
 limit_options = {
-    "⚡ 15 Second - Daraz Viral (BEST FOR SALE)": 15,
-    "🔥 20 Second - TikTok Ad": 20,
-    "💯 30 Second - Facebook Ad": 30,
-    "🎙️ 1 Minute - Short Review": 60,
-    "⏰ 2 Minute - Long Review": 120,
-    "🎬 5 Minute - YouTube": 300,
-    "🚀 10 Minute - Full Story (MAX)": 600,
+    "⚡ 15 Sec - Viral": 15, "🔥 20 Sec": 20, "💯 30 Sec": 30,
+    "🎙️ 1 Min": 60, "⏰ 2 Min": 120, "🚀 10 Min": 600,
 }
+sel = st.selectbox("Limit:", list(limit_options.keys()), index=0)
+MAX_SEC = limit_options[sel]
+MAX_CHARS = MAX_SEC * 15
 
-selected_label = st.selectbox("⏱️ VOICE LIMIT SELECT KARO:", list(limit_options.keys()), index=0)
-MAX_SEC = limit_options[selected_label]
-# Approx 15 characters = 1 second
-MAX_CHARS = MAX_SEC * 15 
-
-st.info(f"✅ Selected: **{selected_label}** = Max **{MAX_CHARS} Characters** (~{MAX_SEC} sec)")
-
-# === 2. VOICE SELECT ===
 voice_map = {
-    "👩 Larki - Uzma - 80% Real (Viral)": "ur-PK-UzmaNeural",
-    "👩 Larki - Ayesha - Mature": "ur-PK-AyeshaNeural",
-    "👦 Larka - Asad": "ur-PK-AsadNeural",
+    "👩 Uzma - CLEAR (Best for Urdu)": "ur-PK-UzmaNeural",
+    "👩 Ayesha - SAAF URDU (Most Clear)": "ur-PK-AyeshaNeural", # YE SAB SE SAAF BOLTI HAI
+    "👦 Asad - Clear": "ur-PK-AsadNeural",
 }
-v_choice = st.selectbox("Kon bolay?", list(voice_map.keys()))
+v_choice = st.selectbox("Voice (Ayesha sab se saaf hai):", list(voice_map.keys()), index=1)
 voice_name = voice_map[v_choice]
 
-# === 3. TEXT BOX WITH LIVE LIMIT ===
-default_texts = {
-    15: "Assalam-o-Alaikum! Ye Mehar Mart ka Pure Honey 100% khalis hai! Sirf 2975 me 15% OFF - Abhi Order Karo!",
-    20: "Guys ye Mehar Mart ka Pure Honey hai, 100% natural, immunity ke liye best! Sirf 2975 me Free Delivery ke sath!",
-    30: "Assalam-o-Alaikum! Aaj main laya hun Pure Honey jo 100% khalis hai, bachon aur baron ke liye best. Abhi 2975 me mil raha hai Free Delivery ke sath, jaldi order karo!",
-    60: "Assalam-o-Alaikum guys! Ye Mehar Mart ka Pure Honey 100% Natural hai. Taste bohat zabardast, immunity strong karta hai. Subah garam pani me len to faida hi faida. Sirf 2975 me 15% OFF aur Free Delivery pure Pakistan me. Order karo!",
-    120: "Assalam-o-Alaikum guys! Aaj review hai Mehar Mart ke Pure Honey ka. Ye 100% khalis hai, koi cheeni nahi. Maine khud use kiya hai, bohat natural meetha hai. Bachon ki sehat ke liye best hai, immunity strong karta hai. Abhi Mehar Mart pe sirf 2975 me 15% OFF aur Free Delivery mil rahi hai pure Pakistan me. Stock limited hai, jaldi order karo 0345... par!",
-}
+st.info("💡 TIP: Agar Urdu me likhna hai to is tarah likho - zyada clear bolegi:\n`السلام علیکم` > Roman se zyada saaf!")
 
-# Auto text as per limit
-auto_text = default_texts.get(MAX_SEC, default_texts[60])
+# TABS - Roman vs Urdu Script
+tab1, tab2 = st.tabs(["🔤 Roman Urdu (Aap wala)", "🕌 Urdu Script (100% Clear)"])
 
-text = st.text_area(f"Text Likho (Max {MAX_CHARS} chars):", value=auto_text, height=180, max_chars=MAX_CHARS)
+with tab1:
+    roman_text = st.text_area(f"Roman Urdu Text ({MAX_CHARS} max):", 
+    "As-salamu Alaikum! Mere pyare bhaiyon aur behnon. Aaj main aapko Mehar Mart ke khalis honey ki kahani sunata hun. Ye 100 percent khalis hai, is me shifa hai. Sirf 2975 me!",
+    height=180, max_chars=MAX_CHARS, key="roman")
 
-# Live counter
-char_count = len(text)
-sec_count = char_count // 15
-progress = char_count / MAX_CHARS if MAX_CHARS>0 else 0
+with tab2:
+    urdu_text = st.text_area("Urdu Script me likho - 100% saaf bolegi:", 
+    "السلام علیکم! میرے پیارے بھائیوں اور بہنوں۔ آج میں آپ کو مہر مارٹ کے خالص شہد کی کہانی سناتا ہوں۔ یہ سو فیصد خالص ہے، اس میں شفا ہے۔ صرف 2975 میں!",
+    height=180, key="urdu")
 
-col1, col2 = st.columns(2)
-col1.metric("Characters", f"{char_count} / {MAX_CHARS}")
-col2.metric("Time", f"~{sec_count} sec / {MAX_SEC} sec")
+# Final text select karo
+use_urdu_script = st.checkbox("✅ Urdu Script wala istemal karo (Zyada Clear)", value=False)
+raw_text = urdu_text if use_urdu_script else roman_text
 
-st.progress(min(progress, 1.0))
+if raw_text:
+    fixed_text = fix_urdu_pronunciation(raw_text)
+    st.caption(f"Fixed for Voice: {fixed_text[:200]}...")
+    
+    chars = len(raw_text)
+    st.metric("Chars / Time", f"{chars} / {MAX_CHARS}", f"{chars//15} sec / {MAX_SEC} sec")
+    st.progress(min(chars/MAX_CHARS, 1.0))
 
-if progress > 1.0:
-    st.error(f"⚠️ Limit Cross! {MAX_CHARS - char_count} chars kam karo!")
-elif progress > 0.9:
-    st.warning("⚠️ Limit ke kareeb ho - thoda kam karo!")
-else:
-    st.success(f"✅ Perfect - Limit ke andar hai!")
+    async def gen_clear(text, voice):
+        os.makedirs("voice", exist_ok=True)
+        path = "voice/clear_urdu.mp3"
+        # CLEAR SETTINGS: slow + clear
+        await edge_tts.Communicate(text, voice, rate="-10%", pitch="+0Hz", volume="+20%").save(path)
+        return path
 
-# === 4. GENERATE ===
-async def gen_voice(text, voice):
-    os.makedirs("voice", exist_ok=True)
-    path = "voice/final_limit_voice.mp3"
-    await edge_tts.Communicate(text, voice, rate="-5%", pitch="+1Hz", volume="+10%").save(path)
-    return path
-
-if st.button(f"🎙️ {MAX_SEC} SEC KI VOICE BANAO - HUMAN JESA", type="primary", use_container_width=True, disabled=progress>1.0):
-    with st.spinner(f"{MAX_SEC} sec ki voice ban rahi... 10 sec..."):
-        try:
-            path = asyncio.run(gen_voice(text, voice_name))
-            st.balloons()
-            st.success(f"🔥 {sec_count} Second ki Voice Ready! Limit: {MAX_SEC} sec")
+    if st.button("🎙️ SAAF URDU VOICE BANAO", type="primary", use_container_width=True):
+        with st.spinner("Saaf talafuz me bana raha..."):
+            final_text = fixed_text
+            path = asyncio.run(gen_clear(final_text, voice_name))
+            st.success("✅ Saaf Voice Ready - Ab lafz nahi tootenge!")
             st.audio(path)
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {sec_count} Sec Voice", f, file_name=f"VOICE_{MAX_SEC}SEC.mp3", mime="audio/mpeg")
-        except Exception as e:
-            st.error(f"Error: {e}")
+                st.download_button("📥 Download Clear Voice", f, file_name="CLEAR_URDU.mp3", mime="audio/mpeg")
 
 st.divider()
-st.caption("Mehar Mart V88 - 15 sec se 10 min tak - Full Unlimited FREE!")
+st.markdown("""
+**Bhai Clear Voice ke 3 Raaz:**
+1. **Voice Ayesha select karo** - Uzma se zyada saaf Urdu bolti hai
+2. **Speed -10% rakhi hai** - taake lafz clear hon
+3. **Roman me `As-salamu Alaikum` likho** - `Assalam-o-Alaikum` se zyada saaf
+
+**100% Clear chahiye to Tab 2 me Urdu Script me likho - `السلام علیکم` - ye kabhi galat nahi bolegi!**
+""")
