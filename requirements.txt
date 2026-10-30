@@ -1,4 +1,6 @@
 streamlit
-pandas
-groq
+requests
 pillow
+numpy
+imageio
+imageio-ffmpeg
