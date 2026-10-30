@@ -6,3 +6,4 @@ imageio-ffmpeg
 gtts
 moviepy
 numpy
+edge-tts
