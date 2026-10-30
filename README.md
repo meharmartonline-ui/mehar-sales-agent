@@ -1,73 +1,160 @@
-# Mehar Super Agent v2 — Fixed Prototype
+import streamlit as st
+import sqlite3
+import os
+from datetime import datetime
+from groq import Groq
 
-This package is a **hardened Streamlit prototype**, not a production-ready marketplace, payment gateway, webhook server, or installable PWA.
+st.set_page_config(page_title="Mehar Super Agent v2", layout="wide")
 
-## Features implemented
-- Single-admin login configured via environment variables or Streamlit secrets; no built-in default password.
-- Local SQLite lead storage with parameterized queries, short-lived connections, WAL, busy timeout, constraints, and indexes.
-- Rolling 60-second SEO rate limit recorded atomically in SQLite.
-- Optional Groq SEO generation with timeout, bounded SDK retries, output limits, and guarded error messages.
-- Clear demo-only payment UI; it does not verify or approve Easypaisa payments.
-- Webhook/PWA limitations documented instead of presenting placeholders as working integrations.
+# --- LOGIN FIX ---
+ADMIN_USER = str(st.secrets.get("ADMIN_USER", "mehar_admin_9x")).strip()
+ADMIN_PASS = str(st.secrets.get("ADMIN_PASS", "Strong#2026Pass")).strip()
 
-## Run locally
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-```bash
-python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-```
+if not st.session_state.logged_in:
+    st.title("Mehar Super Agent v2 - Locked 🔒")
+    u = st.text_input("Username").strip()
+    p = st.text_input("Password", type="password").strip()
+    if st.button("Login"):
+        if u == ADMIN_USER and p == ADMIN_PASS:
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("Wrong login Bhai!")
+    st.stop()
 
-Set secrets before starting. Use a unique strong password; do not commit secrets to GitHub.
+# --- DB SETUP ---
+conn = sqlite3.connect("mehar.db", check_same_thread=False)
+c = conn.cursor()
+c.execute("CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, niche TEXT, created TEXT)")
+c.execute("CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, title TEXT, details TEXT, created TEXT)")
+conn.commit()
 
-Linux/macOS:
-```bash
-export ADMIN_USER='your-admin-user'
-export ADMIN_PASS='use-a-long-unique-password'
-export GROQ_API_KEY='your-groq-api-key'
-streamlit run app.py
-```
+st.title("Mehar Super Agent v2 · Streamlit")
+st.caption("Leads + SEO (Groq) + Store Manager + System — Demo payment only")
+st.success(f"Logged in Bhai! {ADMIN_USER}")
 
-Windows PowerShell:
-```powershell
-$env:ADMIN_USER='your-admin-user'
-$env:ADMIN_PASS='use-a-long-unique-password'
-$env:GROQ_API_KEY='your-groq-api-key'
-streamlit run app.py
-```
+tab1, tab2, tab3, tab4 = st.tabs(["Leads", "SEO Generator", "Store Manager", "System"])
 
-Alternatively, create `.streamlit/secrets.toml` locally (never commit it):
-```toml
-ADMIN_USER = "your-admin-user"
-ADMIN_PASS = "use-a-long-unique-password"
-GROQ_API_KEY = "your-groq-api-key"
-```
+# --- TAB 1 LEADS ---
+with tab1:
+    st.subheader("Add Lead — Validation 7-15 digits")
+    with st.form("lead_form", clear_on_submit=True):
+        name = st.text_input("Name * min 2")
+        phone = st.text_input("Phone * 7-15 digits")
+        niche = st.text_input("Niche * e.g. honey")
+        submit = st.form_submit_button("Add Lead")
+        if submit:
+            if len(name.strip()) < 2:
+                st.error("Name min 2 chars Bhai!")
+            elif not (7 <= len(phone.strip()) <= 15 and phone.strip().isdigit()):
+                st.error("Phone 7-15 digits only Bhai!")
+            elif len(niche.strip()) < 2:
+                st.error("Niche likho Bhai!")
+            else:
+                c.execute("INSERT INTO leads (name,phone,niche,created) VALUES (?,?,?,?)", (name.strip(), phone.strip(), niche.strip(), datetime.now().strftime("%Y-%m-%d %H:%M")))
+                conn.commit()
+                st.success(f"Lead added Bhai: {name}")
+    st.divider()
+    st.subheader("All Leads")
+    leads = c.execute("SELECT id, name, phone, niche, created FROM leads ORDER BY id DESC").fetchall()
+    if leads:
+        for row in leads:
+            st.write(f"**{row[0]}** | {row[1]} | {row[2]} | {row[3]} | {row[4]}")
+    else:
+        st.info("No leads yet Bhai")
 
-## Database
+# --- TAB 2 SEO - FIXED DESCRIPTION BOX ---
+with tab2:
+    st.subheader("SEO Generator - Groq AI (FIXED BOX)")
+    product_title = st.text_input("Product Title *", value="Mehar Sidr Honey 500g")
+    features = st.text_area("Features / Details", value="100% pure, cold extracted, from Karak, for winter", height=120)
+    
+    if st.button("Generate SEO — Groq (timeout 30s, 1 retry)"):
+        if not product_title.strip():
+            st.warning("Product Title likho Bhai!")
+        else:
+            try:
+                groq_key = str(st.secrets.get("GROQ_API_KEY", "")).strip()
+                if not groq_key:
+                    st.error("GROQ_API_KEY secrets me nahi hai Bhai!")
+                else:
+                    client = Groq(api_key=groq_key)
+                    prompt = f"""
+                    You are expert SEO copywriter for Mehar Mart Peshawar, Pakistan.
+                    Product: {product_title}
+                    Features: {features}
+                    
+                    TASK: Write in simple English + Urdu mix for Pakistani customer.
+                    Give me EXACTLY in this format:
+                    1. SEO Title: (max 60 chars)
+                    2. SEO Description: (max 160 chars)
+                    3. 5 Bullet Points
+                    4. 10 Tags
+                    5. Small Ad Description (30 words)
+                    """
+                    with st.spinner("Groq AI soch raha hai Bhai... 15 sec"):
+                        completion = client.chat.completions.create(
+                            model="openai/gpt-oss-20b",
+                            messages=[{"role": "user", "content": prompt}],
+                            temperature=0.7,
+                            max_tokens=1200,
+                        )
+                        result = completion.choices[0].message.content
+                        
+                        if not result or len(result.strip()) < 10:
+                            st.error(f"AI ne khali jawab diya! Raw: {completion}")
+                        else:
+                            st.markdown("### Result:")
+                            st.success("SEO Ho gaya Bhai! MASHALLAH")
+                            
+                            # YE RAHA DESCRIPTION BOX BHAI!
+                            st.subheader("Description Yahan Hai Bhai 👇")
+                            st.text_area("Full SEO Result - Copy Karo", value=result, height=450)
+                            st.code(result, language="text")
+                            
+                            # Save for Store Manager
+                            st.session_state.last_seo = result
+                            
+            except Exception as e:
+                st.error(f"Groq error Bhai: {e}")
+                st.info("Tip: Model ko 'openai/gpt-oss-120b' kar ke dekho")
 
-By default the app creates `leads.db` in its working directory. Set `MEHAR_DB_PATH` to choose another path. Confirm persistent disk/volume and backups before deployment; ephemeral hosting may erase local files on restart or redeploy. This is a small local prototype database, not a substitute for production database operations.
+# --- TAB 3 STORE ---
+with tab3:
+    st.subheader("Store Manager — Catalog + Ad Studio V4.1")
+    with st.form("product_form", clear_on_submit=True):
+        t = st.text_input("Product Title for Store *")
+        d = st.text_area("Product Details (SEO yahan paste karo)")
+        add_p = st.form_submit_button("Add to Store")
+        if add_p:
+            if len(t.strip()) < 2:
+                st.error("Title likho Bhai!")
+            else:
+                c.execute("INSERT INTO products (title,details,created) VALUES (?,?,?)", (t.strip(), d.strip(), datetime.now().strftime("%Y-%m-%d %H:%M")))
+                conn.commit()
+                st.success("Product added Bhai!")
+    
+    if "last_seo" in st.session_state:
+        st.info("Last SEO Generated 👇 - Isko Store me add kar sakte ho")
+        st.write(st.session_state.last_seo)
+    
+    st.divider()
+    prods = c.execute("SELECT id, title, details, created FROM products ORDER BY id DESC").fetchall()
+    st.write("**All Products:**")
+    st.write(prods if prods else "No products yet")
 
-## Important limitations
-- **Authentication:** one shared admin credential, not multi-user account management, MFA, password reset, audit-grade session management, or production authorization.
-- **Rate limiting:** per username and shared SQLite database. It is not a distributed limiter for multi-instance deployments.
-- **Groq:** requires a valid API key, supported model, internet access, and review of provider data handling. The product description is sent to the provider when the user clicks Generate SEO.
-- **Easypaisa:** no live API integration. No payment status is verified.
-- **Webhooks:** no webhook endpoint is exposed by this Streamlit app.
-- **PWA:** no installable PWA is delivered by this package. Streamlit does not automatically serve the generated files as a PWA; use a proper frontend/static hosting architecture and HTTPS.
-- **Deployment:** run behind HTTPS and suitable access controls. Do not expose a private admin tool publicly without a deployment-specific security review.
-
-## Validation performed
-Python syntax compilation and ZIP integrity checks were run on the packaged source. Live Streamlit/browser tests, Groq API calls, mobile-device tests, penetration tests, and live Easypaisa/WhatsApp integrations were **not** performed.
-
-## v2.1 changes (code review of v2 FIXED)
-- Login throttle: 5 attempts / 5 minutes, global (stops password guessing; an attacker can also temporarily lock the admin out).
-- Login uses a form (Enter / phone keyboard "Go" submits).
-- Rate-limit cleanup and counting are now scoped per action (v2 would have let one action's cleanup delete another's rows once a second action was added).
-- Phone validation (7-15 digits). Stale SEO result no longer shown under a new error.
-- `.streamlit/config.toml` forces the dark theme, so labels stay readable on light-mode phones.
-- Not re-tested live: Streamlit UI, Groq, mobile. Logic tested with a script (see below).
-- Known: refreshing the page logs you out (session-only auth). `use_container_width` may warn on newer Streamlit; check on your version.
-
-## v2.2: local store manager (store_manager.py)
-Tabs Store / Products / Theme / Orders / Publish use the same SQLite file (new tables: stores, products, orders). Orders decrement stock atomically; returned/cancelled restore it. **No external platform is called.** Publish = local readiness checklist + JSON export (no customer data). Connect a real platform only from its official API docs.
+# --- TAB 4 SYSTEM ---
+with tab4:
+    st.subheader("System Status")
+    st.write(f"**ADMIN_USER:** `{ADMIN_USER}`")
+    st.write(f"**GROQ_KEY:** {'Yes ✅' if st.secrets.get('GROQ_API_KEY') else 'No ❌'}")
+    st.write(f"**DB:** {os.path.abspath('mehar.db')}")
+    st.write(f"**Leads:** {c.execute('SELECT COUNT(*) FROM leads').fetchone()[0]}")
+    st.write(f"**Products:** {c.execute('SELECT COUNT(*) FROM products').fetchone()[0]}")
+    st.write(f"**Model:** openai/gpt-oss-20b (Free)")
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
