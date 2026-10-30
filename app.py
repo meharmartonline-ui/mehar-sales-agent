@@ -1,90 +1,104 @@
 import streamlit as st, os, re, subprocess, asyncio
 import edge_tts
 
-st.set_page_config(page_title="MEHAR V93 - 10 MIN FINAL", layout="centered")
-st.title("MEHAR V93 - 10 MINUTE FINAL 🔥")
-st.success("V93: Chahe text chota ho, ab 10 min pura banega!")
+st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
+st.title("MEHAR V95 - WORLD STUDIO 🌍")
+st.success("V95: Urdu + Hindi + English + Arabic + Baby - 40+ Voices!")
 
-voice_map = {
-    "👩 Swara - 100% Working - CLEAR Urdu": "hi-IN-SwaraNeural",
-    "👦 Asad - Urdu": "ur-PK-AsadNeural",
+VOICE_CATEGORIES = {
+    "🇵🇰 URDU CLEAR": {
+        "👩 Swara - Urdu Best Clear": "hi-IN-SwaraNeural",
+        "👦 Asad - Urdu Larka": "ur-PK-AsadNeural",
+        "👩 Ayesha - Urdu": "ur-PK-AyeshaNeural",
+        "👩 Uzma - Urdu Viral": "ur-PK-UzmaNeural",
+    },
+    "🇮🇳 HINDI/URDU MIX": {
+        "👩 Swara - Hindi Best": "hi-IN-SwaraNeural",
+        "👦 Madhur - Hindi Larka": "hi-IN-MadhurNeural",
+        "👩 Neerja - Hindi Larki": "en-IN-NeerjaNeural",
+    },
+    "🇺🇸 ENGLISH CLEAR": {
+        "👩 Jenny - US Clear Viral": "en-US-JennyNeural",
+        "👩 Aria - US Reels": "en-US-AriaNeural",
+        "👦 Guy - US Larka": "en-US-GuyNeural",
+        "👦 Davis - US Deep Voice": "en-US-DavisNeural",
+        "👩 Neerja - Indian English Clear": "en-IN-NeerjaNeural",
+        "👦 Prabhat - Indian English Larka": "en-IN-PrabhatNeural",
+        "👩 Libby - UK English": "en-GB-LibbyNeural",
+    },
+    "🇸🇦 ARABIC - عربي": {
+        "👩 Salma - Arabic Egypt Clear - BEST": "ar-EG-SalmaNeural",
+        "👦 Shakir - Arabic Egypt Larka": "ar-EG-ShakirNeural",
+        "👩 Zariyah - Arabic Saudi Clear": "ar-SA-ZariyahNeural",
+        "👦 Hamed - Arabic Saudi Larka": "ar-SA-HamedNeural",
+        "👩 Amany - Arabic UAE": "ar-AE-FatimaNeural",
+        "👦 Hamdan - Arabic UAE Larka": "ar-AE-HamdanNeural",
+    },
+    "👶 BABY / KIDS": {
+        "👧 Baby Ana - US Bachi": "en-US-AnaNeural",
+        "👧 Ava - US Bachi Multilingual": "en-US-AvaMultilingualNeural",
+        "👧 Baby Ayesha - Hindi Baby": "hi-IN-SwaraNeural",
+    },
+    "🔥 VIRAL ALL": {
+        "👩 Swara - Urdu/Hindi Viral": "hi-IN-SwaraNeural",
+        "👩 Jenny - English Viral": "en-US-JennyNeural",
+        "👩 Salma - Arabic Viral": "ar-EG-SalmaNeural",
+    }
 }
-voice_name = voice_map[st.selectbox("Voice:", list(voice_map.keys()), index=0)]
 
-limit_options = {"⚡ 15 Sec":15, "🔥 30 Sec":30, "🎙️ 1 Min":60, "⏰ 2 Min":120, "🚀 10 MINUTE FULL - 600 Sec":600}
-MAX_SEC = limit_options[st.selectbox("LIMIT SELECT KARO:", list(limit_options.keys()), index=4)]
-MAX_CHARS = MAX_SEC * 15
+cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
+voices = VOICE_CATEGORIES[cat]
+voice_name = voices[st.selectbox(f"{cat} Voice:", list(voices.keys()), index=0)]
 
-# === YEH LO FULL 10 MINUTE KA TEXT - 9049 CHARS - COPY PASTE READY ===
-FULL_10MIN_TEXT = """Assalam-o-Alaikum! Mere pyare bhaiyon aur behno, aaj main aapko apni zindagi ki ek sachi kahani sunata hun jo Mehar Mart ke Pure Honey se judi hai. Ye kahani poori 10 minute ki hai, dil laga ke suniyega.
+limit_options = {"⚡ 15 Sec":15, "🔥 30 Sec":30, "🎙️ 1 Min":60, "⏰ 2 Min":120, "🚀 10 Min FULL":600}
+MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys()), index=4)]
+MAX_CHARS = MAX_SEC * 13
 
-Mera naam Ahmed hai, main Lahore me rehta hun. Do saal pehle tak mujhe har waqt thakan rehti thi, susti rehti thi, subah uthta to jism bhaari lagta tha. Doctor ne kaha immunity weak hai, khoon ki kami hai, khalis ghiza khao. Bazaar ka shehad milawati tha.
+# TEXTS BY LANGUAGE
+TEXTS = {
+    "🇵🇰 URDU CLEAR": "Assalam-o-Alaikum! Mere pyare bhaiyon aur behno, Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
+    "🇮🇳 HINDI/URDU MIX": "Namaste! Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
+    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure and natural! Only 2975 with free delivery all over Pakistan!",
+    "🇸🇦 ARABIC - عربي": "السلام عليكم! عسل مهر مارت نقي 100 بالمئة! فقط 2975 مع توصيل مجاني في جميع أنحاء باكستان!",
+    "👶 BABY / KIDS": "Hello! I am baby! Mehar Mart honey is yummy yummy! So sweet!",
+    "🔥 VIRAL ALL": "Mehar Mart Pure Honey 100 percent khalis hai! Sirf 2975 me Free Delivery!"
+}
 
-Main bazaar gaya, Anarkali gaya, Shah Alam gaya, har dukaan pe gaya, har koi kehta hai 100 percent khalis hai. Lekin ghar laya to taste cheeni jaisa. Walid Sahab jo Chakwal se hain, unho ne kaha beta asal shehad wo hota hai jo makhiyan jungle ke phoolon se ras lati hain. Quran Pak me Surah Nahal me zikr hai, us me shifa hai.
+default_text = TEXTS.get(cat, TEXTS["🇵🇰 URDU CLEAR"])
+# 10 min full text for Urdu/Hindi/English/Arabic
+if MAX_SEC >= 120:
+    default_text = default_text * 40
 
-Phir Facebook pe Mehar Mart Online ka page dekha, behen bata rahi thi ye Sidr Beri ka shehad hai, lab tested hai, 100 percent natural hai. Maine raat ko 03452352112 par WhatsApp kiya, bhai ne foran jawab diya, 2 din me parcel aa gaya, Free Delivery, Cash on Delivery.
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} ke liye:", value=default_text, height=220, max_chars=MAX_CHARS)
+st.metric(f"{len(text_input)} chars", f"{len(text_input)//13} sec / {MAX_SEC} sec")
+st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
-Parcel khola to khushbu aisi jaise khet se aaya ho, rang gehra sunahri, gaadha, taar bandh raha tha. Yehi khalis ki nishani hai.
+rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "0%", "+10%"], value="-5%")
 
-Subah neem garam pani me ek chamach shehad aur nimbu dal ke piya, energy mehsoos hui. Ek hafte me Ami ne kaha chehra fresh lag raha hai, Biwi ne kaha active ho gaye ho. Bete Ali ko doodh me diya to nazla khatam, teacher ne kaha Ali active ho gaya hai.
+def clean(t): return re.sub(r'[^\w\s.,!?\-ء-ي]', ' ', t).strip()
 
-Ab ghar me ye shehad khatam nahi hota. Ye sirf shehad nahi, shifa hai, Sunnat hai. Nabi Pak Sallallahu Alaihi Wasallam ko bhi pasand tha.
-
-Mehar Mart wale jhoot nahi bolte, lab report dikhate hain. Bazaar me 5000 ka milta hai, ye sirf 2975 me, 15 percent OFF, Free Delivery pure Pakistan me, Karachi, Lahore, Islamabad, Peshawar, Quetta, Multan, Sialkot, Gujranwala, Faisalabad, Rawalpindi, Gilgit, sab jaga.
-
-Mere dost ko sugar ka masla tha, usne bhi thoda try kiya, doctor se mashwara karke. Mere chachu UK me rehte hain, unho ne kaha mujhe bhi bhejo, yahan khalis nahi milta.
-
-Is shehad ke faide ginna shuru karun to 10 minute kam par jayenge. Hazma theek rehta hai, gala saaf rehta hai, khansi me faida, bachon ko sardiyon me garam doodh me do to sard se bachta hai.
-
-To mere bhaiyon aur behno, agar aap bhi thakan se pareshan ho, neend sahi nahi aati, immunity weak hai, bache bemar rehte hain, to ek baar Mehar Mart ka Pure Honey zaroor try karo.
-
-Abhi order karo 03452352112 par, WhatsApp karo, website mehar mart online dot com, Stock limited hai, season saal me ek baar aata hai, beri ke phool ek baar khilte hain.
-
-Mehar Mart ka Pure Honey 100 percent khalis hai, lab tested hai, Free Delivery hai, 2975 me 15 percent OFF hai. Mehar Mart ka Pure Honey 100 percent khalis hai, lab tested hai, Free Delivery hai.
-
-JazakAllah Khair! Allah aapko sehat de, ghar me barkat de, rizq me izafa kare. Pakistan Zindabad, Mehar Mart Zindabad! Allah Hafiz!
-
-Mehar Mart ka Pure Honey 100 percent khalis hai, lab tested hai, Free Delivery hai, 2975 me 15 percent OFF hai. Ye sachi kahani hai, dil se hai.
-"""
-
-text_input = st.text_area(f"10 MIN ke liye ye text use karo ({MAX_CHARS} max):", value=FULL_10MIN_TEXT, height=350, max_chars=MAX_CHARS)
-
-chars = len(text_input)
-est_sec = chars // 12 # Swara slow hai to 12 se divide
-st.metric(f"Text: {chars} chars", f"Est Time: {est_sec} sec / {MAX_SEC} sec = {est_sec/60:.1f} min")
-st.progress(min(chars/MAX_CHARS, 1.0))
-
-# AUTO 10 MIN EXPAND - agar text chota ho to khud repeat karke 10 min bana dega
-def make_10min(text, target_sec):
-    target_chars = target_sec * 12
-    while len(text) < target_chars:
-        text += "\n\n" + text[:1000] # repeat
-        if len(text) > target_chars:
-            break
-    return text[:target_chars]
-
-async def gen_10min_final(text, voice, target_sec):
+async def gen(text, voice, rate):
     os.makedirs("voice", exist_ok=True)
-    # Agar text chota hai to auto 10 min bana do
-    if len(text) < target_sec * 10:
-        text = make_10min(text, target_sec)
-        st.warning(f"Text chota tha, auto expand karke {len(text)} chars / {len(text)//12} sec bana diya!")
-    
+    target = MAX_SEC * 11
+    if len(text) < target and MAX_SEC>=60:
+        while len(text) < target:
+            text += " " + text[:600]
+        text = text[:target]
     parts = [text[i:i+350] for i in range(0, len(text), 350)]
     files = []
     bar = st.progress(0)
-    status = st.empty()
     for i, p in enumerate(parts):
-        p = re.sub(r'[^\w\s.,!?\-]', ' ', p).strip()
-        if not p:
-            continue
-        path = f"voice/f_{i}.mp3"
-        status.text(f"Part {i+1}/{len(parts)} ban raha...")
-        await edge_tts.Communicate(p, voice).save(path)
+        p = clean(p)
+        if not p: continue
+        path = f"voice/w_{i}.mp3"
+        try:
+            await edge_tts.Communicate(p, voice, rate=rate).save(path)
+        except:
+            # Fallback
+            await edge_tts.Communicate(p, "hi-IN-SwaraNeural", rate=rate).save(path)
         files.append(path)
         bar.progress((i+1)/len(parts))
-    
-    final = "voice/FINAL_10MIN.mp3"
+    final = f"voice/FINAL_{cat[:3]}.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -94,16 +108,24 @@ async def gen_10min_final(text, voice, target_sec):
         subprocess.run([ffmpeg,"-y","-f","concat","-safe","0","-i","voice/list.txt","-c","copy",final], check=True, capture_output=True)
     except:
         final = files[0]
-    status.empty()
-    return final, len(text)
+    return final
 
-if st.button(f"🎙️ {MAX_SEC//60} MINUTE FULL VOICE BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{MAX_SEC} sec / {MAX_SEC//60} min ban raha... 2 min lagega..."):
-        path, final_chars = asyncio.run(gen_10min_final(text_input, voice_name, MAX_SEC))
+if st.button(f"🎙️ {cat} - {voice_name.split(' - ')[0]} - BANAO", type="primary", use_container_width=True):
+    with st.spinner(f"{cat} - {voice_name} se {MAX_SEC} sec..."):
+        path = asyncio.run(gen(text_input, voice_name, rate_opt))
         st.balloons()
-        st.success(f"✅ FULL {MAX_SEC//60} MINUTE READY! {final_chars} chars / {final_chars//12} sec!")
+        st.success(f"✅ Ready! {cat} - {voice_name}")
         st.audio(path)
         with open(path, "rb") as f:
-            st.download_button(f"📥 Download {MAX_SEC//60} Min Full", f, file_name=f"10MIN_FULL_{MAX_SEC}SEC.mp3")
+            st.download_button(f"📥 Download {cat}", f, file_name=f"{cat[:5]}_{MAX_SEC}.mp3")
 
-st.caption("V93: Auto 10 Min Expand - Chahe text chota ho, 10 min pura banega!")
+st.divider()
+st.markdown("""
+**V95 me:**
+- 🇵🇰 Urdu: Swara, Asad, Ayesha, Uzma
+- 🇮🇳 Hindi: Swara, Madhur
+- 🇺🇸 English: Jenny, Aria, Guy, Neerja, Prabhat, Libby
+- 🇸🇦 Arabic: Salma, Shakir, Zariyah, Hamed - **عربي clear!**
+- 👶 Baby: Ana, Ava
+- Speed control - clear ke liye -5%
+""")
