@@ -1,6 +1,5 @@
 import streamlit as st
 import sqlite3
-import os
 from datetime import datetime
 from groq import Groq
 
@@ -12,16 +11,19 @@ ADMIN_PASS = str(st.secrets.get("ADMIN_PASS", "Strong#2026Pass")).strip()
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# --- LOGIN FIX V3 — Form se bar bar login khatam ---
 if not st.session_state.logged_in:
     st.title("Mehar Super Agent v2 - Locked 🔒")
-    u = st.text_input("Username").strip()
-    p = st.text_input("Password", type="password").strip()
-    if st.button("Login"):
-        if u == ADMIN_USER and p == ADMIN_PASS:
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Wrong login Bhai!")
+    with st.form("login_form"):
+        u = st.text_input("Username").strip()
+        p = st.text_input("Password", type="password").strip()
+        login_btn = st.form_submit_button("Login")
+        if login_btn:
+            if u == ADMIN_USER and p == ADMIN_PASS:
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("Wrong login Bhai!")
     st.stop()
 
 conn = sqlite3.connect("mehar.db", check_same_thread=False)
@@ -31,30 +33,26 @@ c.execute("CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, title TE
 conn.commit()
 
 st.title("Mehar Super Agent v2 · Streamlit")
-st.success(f"Logged in Bhai! {ADMIN_USER}")
+st.success(f"Logged in Bhai! {ADMIN_USER} — Login Fix Ho gaya ✅")
 
 tab1, tab2, tab3, tab4 = st.tabs(["Leads", "SEO Generator", "Store Manager", "System"])
 
 with tab1:
-    st.subheader("Add Lead — Validation 7-15 digits")
+    st.subheader("Add Lead")
     with st.form("lead_form", clear_on_submit=True):
         name = st.text_input("Name * min 2")
         phone = st.text_input("Phone * 7-15 digits")
-        niche = st.text_input("Niche * e.g. honey")
+        niche = st.text_input("Niche *")
         submit = st.form_submit_button("Add Lead")
         if submit:
-            if len(name.strip()) < 2:
-                st.error("Name min 2 chars Bhai!")
-            elif not (7 <= len(phone.strip()) <= 15 and phone.strip().isdigit()):
-                st.error("Phone 7-15 digits only Bhai!")
-            elif len(niche.strip()) < 2:
-                st.error("Niche likho Bhai!")
+            if len(name.strip()) < 2 or not (7 <= len(phone.strip()) <= 15 and phone.strip().isdigit()):
+                st.error("Check Name/Phone Bhai!")
             else:
                 c.execute("INSERT INTO leads (name,phone,niche,created) VALUES (?,?,?,?)", (name.strip(), phone.strip(), niche.strip(), datetime.now().strftime("%Y-%m-%d %H:%M")))
                 conn.commit()
-                st.success(f"Lead added Bhai: {name}")
+                st.success(f"Lead added: {name}")
     leads = c.execute("SELECT id, name, phone, niche, created FROM leads ORDER BY id DESC").fetchall()
-    st.write(leads if leads else "No leads yet")
+    st.write(leads if leads else "No leads")
 
 with tab2:
     st.subheader("SEO Generator - Groq AI (FIXED BOX)")
@@ -63,14 +61,17 @@ with tab2:
     if st.button("Generate SEO — Groq"):
         try:
             groq_key = str(st.secrets.get("GROQ_API_KEY", "")).strip()
-            client = Groq(api_key=groq_key)
-            prompt = f"SEO expert for Mehar Mart Peshawar. Product: {product_title}. Features: {features}. Give SEO Title (60 chars), SEO Description (160 chars), 5 Bullets, 10 Tags, Ad Description 30 words."
-            with st.spinner("Groq soch raha hai Bhai..."):
-                completion = client.chat.completions.create(model="openai/gpt-oss-20b", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=1200)
-                result = completion.choices[0].message.content
-                st.success("SEO Ho gaya Bhai! MASHALLAH")
-                st.text_area("Full SEO Result - Copy Karo", value=result, height=450)
-                st.code(result, language="text")
+            if not groq_key.startswith("gsk_"):
+                st.error("Bhai Secrets me GROQ_API_KEY galat hai! gsk_ se start hona chahiye!")
+            else:
+                client = Groq(api_key=groq_key)
+                prompt = f"SEO expert for Mehar Mart Peshawar. Product: {product_title}. Features: {features}. Give SEO Title (60 chars), SEO Description (160 chars), 5 Bullets, 10 Tags, Ad Description 30 words."
+                with st.spinner("Groq soch raha hai Bhai..."):
+                    completion = client.chat.completions.create(model="openai/gpt-oss-20b", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=1200)
+                    result = completion.choices[0].message.content
+                    st.success("SEO Ho gaya Bhai! MASHALLAH")
+                    st.text_area("Full SEO Result - Copy Karo", value=result, height=450)
+                    st.code(result, language="text")
         except Exception as e:
             st.error(f"Groq error Bhai: {e}")
 
@@ -85,13 +86,13 @@ with tab3:
             conn.commit()
             st.success("Product added Bhai!")
     prods = c.execute("SELECT id, title, details, created FROM products ORDER BY id DESC").fetchall()
-    st.write(prods if prods else "No products yet")
+    st.write(prods if prods else "No products")
 
 with tab4:
     st.subheader("System Status")
+    st.write(f"GROQ_KEY OK? : { 'Yes ✅ gsk_...' if str(st.secrets.get('GROQ_API_KEY','')).startswith('gsk_') else 'No ❌ Invalid' }")
     st.write(f"Leads: {c.execute('SELECT COUNT(*) FROM leads').fetchone()[0]}")
     st.write(f"Products: {c.execute('SELECT COUNT(*) FROM products').fetchone()[0]}")
-    st.write(f"Model: openai/gpt-oss-20b (Free)")
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
