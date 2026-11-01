@@ -2,103 +2,93 @@ import streamlit as st, os, re, subprocess, asyncio
 from gtts import gTTS
 import edge_tts
 
-st.set_page_config(page_title="MEHAR V98 - SINDHI KHALIS", layout="centered")
-st.title("MEHAR V98 - SINDHI KHALIS")
-st.success("V98: Sindhi Fixed - Google sd not supported - Using Urdu Pure Voice!")
+st.set_page_config(page_title="MEHAR V100 - LARKA LARKI", layout="centered")
+st.title("MEHAR V100 - LARKA + LARKI KHALIS")
+st.success("V100: Har Language me Larka + Larki - Dono Awaz!")
 
 VOICE_CATEGORIES = {
-    "🇵🇰 SINDHI KHALIS - سنڌي خالص": {
-        "👩 Uzma - Sindhi Khalis BEST - Aurat": "ur-PK-UzmaNeural",
-        "👦 Asad - Sindhi Khalis Mard": "ur-PK-AsadNeural",
-        "👩 Swara - Sindhi Clear": "hi-IN-SwaraNeural",
-        "👩 Ayesha - Sindhi Soft": "ur-PK-AyeshaNeural",
+    "🇵🇰 SINDHI - سنڌي": {
+        "👩 LARKI - Uzma - Aurat": "ur-PK-UzmaNeural",
+        "👦 LARKA - Asad - Mard": "ur-PK-AsadNeural",
     },
-    "🇵🇰 URDU CLEAR": {
-        "👩 Swara - Urdu Best": "hi-IN-SwaraNeural",
-        "👦 Asad - Urdu": "ur-PK-AsadNeural",
-        "👩 Uzma - Urdu Viral": "ur-PK-UzmaNeural",
+    "🇵🇰 URDU - اردو": {
+        "👩 LARKI - Uzma - Aurat Viral": "ur-PK-UzmaNeural",
+        "👦 LARKA - Asad - Mard Best": "ur-PK-AsadNeural",
     },
-    "🇮🇳 HINDI MIX": {
-        "👩 Swara - Hindi": "hi-IN-SwaraNeural",
+    "🇸🇦 ARABIC - عربي": {
+        "👩 LARKI - Salma - Aurat": "ar-EG-SalmaNeural",
+        "👦 LARKA - Shakir - Mard": "ar-EG-ShakirNeural",
     },
-    "🇺🇸 ENGLISH": {
-        "👩 Jenny - English": "en-US-JennyNeural",
+    "🇺🇸 ENGLISH - Clear": {
+        "👩 LARKI - Jenny - Aurat Best": "en-US-JennyNeural",
+        "👦 LARKA - Guy - Mard Best": "en-US-GuyNeural",
     },
-    "🇸🇦 ARABIC": {
-        "👩 Salma - Arabic": "ar-EG-SalmaNeural",
+    "🇮🇳 HINDI": {
+        "👩 LARKI - Swara - Aurat": "hi-IN-SwaraNeural",
+        "👦 LARKA - Madhur - Mard": "hi-IN-MadhurNeural",
     },
 }
 
-cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
+cat = st.selectbox("CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
 voices = VOICE_CATEGORIES[cat]
-voice_name = voices[st.selectbox(f"{cat} Voice:", list(voices.keys()), index=0)]
-MAX_CHARS = 5000
+voice_key = st.selectbox(f"{cat} - LARKA / LARKI SELECT KARO:", list(voices.keys()), index=0)
+voice_name = voices[voice_key]
 
-DEFAULT_SINDHI = "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي بلڪل خالص ۽ قدرتي آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾ سڄي پاڪستان ۾ مفت هوم ڊليوري!"
+MAX_SEC = 600
+DEFAULT_TEXTS = {
+    "🇵🇰 SINDHI - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو ماکي خالص آهي!",
+    "🇵🇰 URDU - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا شہد خالص ہے!",
+    "🇸🇦 ARABIC - عربي": "السلام عليكم! عسل مهر مارت نقي!",
+    "🇺🇸 ENGLISH - Clear": "Hello friends! Mehar Mart honey is pure!",
+    "🇮🇳 HINDI": "Namaste! Mehar Mart honey pure hai!",
+}
 
-text_input = st.text_area("Pure Sindhi Text - Sindhi me likho:", value=DEFAULT_SINDHI if "SINDHI" in cat else "Mehar Mart Pure Honey", height=250, max_chars=MAX_CHARS)
-rate_opt = st.select_slider("Speed:", options=["-10%", "-5%", "+0%", "+5%"], value="+0%")
+text_input = st.text_area("Text:", value=DEFAULT_TEXTS.get(cat, "Hello"), height=200)
+rate_opt = "+0%"
 
-def clean(t, category=""):
-    if "SINDHI" in category:
+def clean(t, cat=""):
+    if "SINDHI" in cat or "URDU" in cat or "ARABIC" in cat:
         return t.strip()
     return re.sub(r'[^\w\s.,!?\-ء-ي]', ' ', t).strip()
 
-def split_sentences(text):
-    parts = re.split(r'([۔!؟!?\n]+)', text)
-    result = []
+def split_sent(text):
+    parts = re.split(r'([۔!؟.!?\n]+)', text)
+    res = []
     cur = ""
     for p in parts:
         cur += p
-        if len(cur) > 250 or re.search(r'[۔!؟\n]', p):
+        if len(cur) > 250 or re.search(r'[۔!؟.!?\n]', p):
             if cur.strip():
-                result.append(cur.strip())
+                res.append(cur.strip())
             cur = ""
     if cur.strip():
-        result.append(cur.strip())
-    if not result:
-        result = [text]
-    return result
-
-def gen_gtts_urdu(text, path):
-    try:
-        # Sindhi ke liye Urdu voice - Kyunki Google me Sindhi nahi hai
-        tts = gTTS(text=text, lang='ur', slow=False)
-        tts.save(path)
-        return True
-    except:
-        return False
+        res.append(cur.strip())
+    return res if res else [text]
 
 async def gen_edge(text, voice, rate, path):
     for _ in range(3):
         try:
             await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
             return True
-        except Exception as e:
-            print(e)
-            await asyncio.sleep(1)
+        except:
+            await asyncio.sleep(0.5)
     return False
 
 async def gen(text, voice, rate, category):
     os.makedirs("voice", exist_ok=True)
-    parts = split_sentences(text)
-    st.write(f"Total {len(parts)} hisson me - Lafz mehfooz!")
+    parts = split_sent(text)
     files = []
     bar = st.progress(0)
     for i, p in enumerate(parts):
         p = clean(p, category)
         if not p:
             continue
-        path = f"voice/khalis_{i}.mp3"
-        ok = await gen_edge(p, voice, rate, path)
-        if not ok:
-            gen_gtts_urdu(p, path)
-        if os.path.exists(path) and os.path.getsize(path) > 500:
+        path = f"voice/v_{i}.mp3"
+        await gen_edge(p, voice, rate, path)
+        if os.path.exists(path):
             files.append(path)
         bar.progress((i+1)/len(parts))
-    if not files:
-        raise Exception("Voice nahi bani - Text chhota karo")
-    final = "voice/FINAL_KHALIS.mp3"
+    final = "voice/FINAL.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -110,18 +100,18 @@ async def gen(text, voice, rate, category):
         final = files[0]
     return final
 
-if st.button("🎙️ KHALIS SINDHI BANAO", type="primary", use_container_width=True):
-    with st.spinner("Sindhi khalis bana raha hun..."):
-        try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
-            st.balloons()
-            st.success("✅ Khalis Sindhi Ready - No Cut!")
-            st.audio(path)
-            with open(path, "rb") as f:
-                st.download_button("📥 Download", f, file_name="KHALIS_SINDHI.mp3", use_container_width=True)
-        except Exception as e:
-            st.error(f"Error: {e}")
+if st.button(f"🎙️ {voice_key} - BANAO", type="primary", use_container_width=True):
+    with st.spinner(f"{voice_key} ki awaz bana raha hun..."):
+        path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
+        st.balloons()
+        st.success(f"Ready! {voice_key}")
+        st.audio(path)
+        with open(path, "rb") as f:
+            st.download_button("📥 Download", f, file_name=f"{cat}_{voice_key}.mp3")
 
 st.divider()
-st.info("NOTE: Google me 'sd' language support nahi hai - Is liye Urdu Uzma/Asad voice Sindhi ke liye sab se khalis hai - Script same hone ki wajah se!")
-st.code("السلام عليڪم! منهنجا پيارا ڀائرو! مهر مارٽ جو ماکي خالص آهي!")
+st.markdown("**LARKA / LARKI Dono:**")
+st.markdown("SINDHI: Uzma = Larki, Asad = Larka")
+st.markdown("URDU: Uzma = Larki, Asad = Larka")
+st.markdown("ARABIC: Salma = Larki, Shakir = Larka")
+st.markdown("ENGLISH: Jenny = Larki, Guy = Larka")
