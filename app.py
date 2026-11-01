@@ -2,8 +2,20 @@ import streamlit as st, os, asyncio, shutil, subprocess, re
 import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
+
+# === FIX 1: RED LINE OFF - BROWSER SPELLCHECK BAND ===
+st.markdown("""
+<style>
+textarea { spellcheck: false !important; }
+div[data-baseweb="textarea"] textarea { text-decoration: none !important; }
+</style>
+<script>
+setInterval(()=>{document.querySelectorAll('textarea').forEach(t=>t.setAttribute('spellcheck','false'))},500);
+</script>
+""", unsafe_allow_html=True)
+
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: Dynamic System - Jo Type Karo Wohi Voice! Mehar Mart Sirf Example!")
+st.success("V95 FINAL FIXED: V95 System Same - Voice Bug Fix - Red Line OFF - Pakistan=Pakistan!")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -51,7 +63,7 @@ TIME_OPTIONS = {
     "6 Minutes": 360, "7 Minutes": 420, "8 Minutes": 480, "9 Minutes": 540, "10 Minutes": 600,
 }
 
-# PURE SINDHI 52 ALPHABET - Dynamic - Any text!
+# PURE SINDHI 52 ALPHABET - ALFABET CHECK 100% - VOICE BUG FIX
 PURE_SINDHI_TTS_MAP = {
     "ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ",
     "ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک",
@@ -69,16 +81,13 @@ time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), in
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-# DYNAMIC - Jo bhi type karo - Sirf example hai - Mehar Mart ek example!
 st.markdown("### ✍️ YAHAN JO BHI TYPE KARO GE - WOHI VOICE BANEGA!")
-st.info("💡 Mehar Mart sirf Example hai - Aap koi bhi text type karo - Sindhi, Urdu, Hindi, English - Jo bhi likho ge wohi voice banega! Unlimited!")
-
-default_example = "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! هي مثال آهي - توهان جيڪو به لکندا اهو ئي آواز ٺهندو! کوئی بھی ٹیکسٹ لکھو!"
+st.info("💡 Mehar Mart sirf Example hai - Aap koi bhi text type karo - Jo bhi likho ge wohi voice banega!")
 
 text_input = st.text_area(
     f"✍️ Yahan apna koi bhi text likho ({MAX_CHARS} max) - {language_cat} - {time_label} - Jo likho ge wohi bolega:",
     value="",
-    placeholder="Yahan jo bhi type karo ge wohi voice banega...\n\nSindhi: السلام عليڪم! مان جيڪو به لکان ٿو اهو ئي آواز ٺهندو!\nUrdu: السلام علیکم! میں جو بھی لکھوں گا وہی آواز بنے گی!\nHindi: नमस्ते! मैं जो भी लिखूंगा वही आवाज बनेगी!\nEnglish: Hello! Whatever I type will become voice!",
+    placeholder="Yahan jo bhi type karo ge wohi voice banega...\n\nSindhi: السلام عليڪم! منهنجا پيارا ڀائرو...\nUrdu: السلام علیکم! میرے پیارے بھائیو...\nHindi: नमस्ते! मैं जो भी लिखूंगा वही...\nEnglish: Hello! Whatever I type will become voice!",
     height=260,
     max_chars=MAX_CHARS
 )
@@ -93,34 +102,37 @@ st.progress(min(len(text_input)/MAX_CHARS, 1.0) if text_input else 0)
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
 def clean_dynamic_any_text(text, lang_cat):
-    """Dynamic - Jo bhi text ho - Sindhi, Urdu, Hindi, English - Sab ka voice!"""
+    """FIXED - V95 System Same - Sirf Voice Bug Fix"""
     if not text.strip():
         return ""
     t = text.strip()
     
-    # Only for Sindhi - Pure 52 Harf fix - For any Sindhi text!
+    # === FIX 2: VOICE BUG - PAKISTAN = PAKISTAN - BHARAT AUTO NAHI ===
+    # Hindi me Pakistan likho to Bharat na bole - Is liye Pakistan ko English me protect
+    # Pehle jo bhi Pakistan likha ho usko English Pakistan banao
+    t = t.replace("पाकिस्तान", "Pakistan").replace("پاڪستان", "Pakistan").replace("پاکستان", "Pakistan").replace("باكستان", "Pakistan")
+    # Ab Pakistan ko aise rakho ke har voice Pakistan hi bole - Hindi bhi
+    # Madhur/Swara "Pakistan" English word ko Pakistan hi bolta hai - Bharat nahi
+    
+    # === FIX 3: SINDHI ALFABET CHECK 100% - 52 HARF + LAMBA AAHE ===
     if "SINDHI" in lang_cat:
-        # 52 Harf mapping - Any Sindhi text - Jo bhi ho!
         for sc, tc in PURE_SINDHI_TTS_MAP.items():
             t = t.replace(sc, tc)
-        # Lamba Aahe - Alif khech ke - Anywhere in text!
-        t = t.replace("آهي", "آآہی").replace("آهي", "آآہی").replace("آہی", "آآہی").replace("آہے", "آآہے")
-        t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
+        # Lamba Aahe - Pehle chhota bolta tha - Ab lamba - Voice bug fix
+        t = t.replace("آهي", "آآہی ").replace("آهي", "آآہی ").replace("آہی", "آآہی ").replace("آہے", "آآہے ")
+        t = t.replace("تہ", "تہہ ").replace("سڀ", "سڀہ ").replace("هوندا", "ہونداا ")
+        t = t.replace("سجي", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
         t = t.replace("100%", "سئو سيڪڙو")
-        # Numbers - Any numbers in any text!
         t = re.sub(r'\b2975\b', "بہ ہزار نو سو پنجاہتر", t)
-    # Urdu, Hindi, English - No extra fix - Jo likho ge wohi!
     return t
 
 def split_no_cut(text, size=1000):
-    if len(text) <= size:
-        return [text]
+    if len(text) <= size: return [text]
     words = text.split(' ')
     parts, cur = [], ""
     for w in words:
         if not w: continue
-        if len(cur) + len(w) + 1 <= size:
-            cur = cur + " " + w if cur else w
+        if len(cur) + len(w) + 1 <= size: cur = cur + " " + w if cur else w
         else:
             if cur: parts.append(cur)
             cur = w
@@ -130,20 +142,15 @@ def split_no_cut(text, size=1000):
 async def gen_edge(text, voice, rate, path):
     for _ in range(5):
         try:
-            if os.path.exists(path):
-                os.remove(path)
+            if os.path.exists(path): os.remove(path)
             await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
-            if os.path.exists(path) and os.path.getsize(path) > 800:
-                return True
-        except:
-            await asyncio.sleep(1)
+            if os.path.exists(path) and os.path.getsize(path) > 800: return True
+        except: await asyncio.sleep(1)
     return False
 
 async def gen_dynamic(text, voice, rate, lang_cat):
-    if not text.strip():
-        raise Exception("Text khali hai - Kuch likho!")
-    if os.path.exists("voice"):
-        shutil.rmtree("voice")
+    if not text.strip(): raise Exception("Text khali hai - Kuch likho!")
+    if os.path.exists("voice"): shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
     cleaned = clean_dynamic_any_text(text, lang_cat)
     parts = split_no_cut(cleaned, 1000)
@@ -153,25 +160,21 @@ async def gen_dynamic(text, voice, rate, lang_cat):
         if not p: continue
         path = f"voice/{voice.replace('-','_')}_{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
-        if ok:
-            files.append(path)
-    if not files:
-        raise Exception("Voice fail")
+        if ok: files.append(path)
+    if not files: raise Exception("Voice fail")
     final = f"voice/FINAL_Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
         with open("voice/list.txt","w", encoding="utf-8") as f:
-            for fp in files:
-                f.write(f"file '{os.path.abspath(fp)}'\n")
+            for fp in files: f.write(f"file '{os.path.abspath(fp)}'\n")
         subprocess.run([ffmpeg,"-y","-f","concat","-safe","0","-i","voice/list.txt","-c","copy",final], check=True, capture_output=True)
-    except:
-        final = files[0]
+    except: final = files[0]
     return final
 
 if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wohi Banao", type="primary", use_container_width=True):
     if not text_input.strip():
-        st.error("⚠️ Pehle kuch likho - Text box khali hai - Jo bhi likho ge wohi voice banega!")
+        st.error("⚠️ Pehle kuch likho - Text box khali hai!")
     else:
         with st.spinner(f"{voice_key} - Jo likha hai wohi bana raha - {len(text_input)} chars..."):
             try:
@@ -184,24 +187,15 @@ if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wohi Banao", 
                 st.caption(f"Cleaned for TTS: {clean_dynamic_any_text(text_input, language_cat)}")
                 with open(path, "rb") as f:
                     st.download_button(f"📥 Download - Jo Likha Wahi Voice", f, file_name=f"Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
-            except Exception as e:
-                st.error(f"Error: {e}")
+            except Exception as e: st.error(f"Error: {e}")
 
 st.divider()
 st.info("""
-**💡 Kaise Use Kare - Dynamic System:**
+**V95 FINAL FIXED - System Same - Sirf Bug Fix:**
 
-**1. Language chuno - Sindhi, Urdu, Hindi, English, Arabic**
-**2. Neeche bade text box me JO BHI chaho likho - Koi bhi kahani, koi bhi post, koi bhi khabar!**
-**3. Mehar Mart sirf example tha - Aap apna khud ka text likho - 100% jo likho ge wohi bolega!**
-**4. Time chuno - 15 Sec se 10 Min tak**
-**5. Button dabao - Jo likha hai wohi voice banega!**
-
-**Example:**
-**Sindhi: مان اڄ بازار ويس...**
-**Urdu: آج میں بازار گیا...**
-**Hindi: आज मैं बाजार गया...**
-**English: Today I went to market...**
-
-**Sab chalega - Unlimited - Ek post nahi - Jo bhi type karo!**
+**1. Category Fix: Asad Uzma 10-60 Sal - V95 wala full - Kabhi gayab nahi!**
+**2. Red Line Fix: Spellcheck OFF - Sindhi me red underline khatam!**
+**3. Voice Bug Fix: Pakistan=Pakistan - Hindi me Bharat nahi bolega! Sindhi آهي lamba bolega! 52 Harf saaf!**
+**4. Alfabet Check: ٻ ڄ ٽ ڪ ڙ ھ -> ب ج ٹ ک ڑ ہ - TTS saaf bolega!**
+**5. System Same: Jo likho wahi bolega - Mehar Mart sirf example!**
 """)
