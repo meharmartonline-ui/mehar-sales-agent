@@ -10,7 +10,7 @@ except:
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: SINDHI KHALIS + Asad/Uzma + No Cut + WSS Fixed")
+st.success("V95: SINDHI KHALIS FIX - Asad/Uzma - No Cut - No WSS")
 
 VOICE_CATEGORIES = {
     "🇵🇰 URDU CLEAR - اردو": {
@@ -49,53 +49,25 @@ VOICE_CATEGORIES = {
         "50 Sal Larka - Asad": "ur-PK-AsadNeural",
         "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
-    "🇺🇸 ENGLISH CLEAR": {
-        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
-    },
-    "🇸🇦 ARABIC - عربي": {
-        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
-    },
 }
 
 cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=1)
 voices = VOICE_CATEGORIES[cat]
-voice_key = st.selectbox(f"{cat} - Asad / Uzma - Age:", list(voices.keys()), index=6)
+voice_key = st.selectbox(f"{cat} - Asad/Uzma Age:", list(voices.keys()), index=6)
 voice_name = voices[voice_key]
 
-st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis Pure")
+st.info(f"SELECTED: {cat} - {voice_key} - {voice_name}")
 
 MAX_SEC = st.selectbox("⏱️ LIMIT:", [15, 30, 60, 120, 600], index=0)
 MAX_CHARS = MAX_SEC * 15
 
 TEXTS = {
-    "🇵🇰 URDU CLEAR - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے! صرف انتیس سو پچھتر روپے میں فری ڈلیوری!",
-    "🇵🇰 SINDHI KHALIS - سنڌي خالص": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري! هي ماکي بلڪل خالص ۽ قدرتي آهي!",
-    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है! सिर्फ 2975 में फ्री डिलीवरी!",
-    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure and natural! Only 2975 with free delivery!",
-    "🇸🇦 ARABIC - عربي": "السلام عليكم! اخواني واخواتي الاعزاء! عسل مهر مارت نقي 100 بالمئة وطبيعي! فقط 2975 مع توصيل مجاني!",
+    "🇵🇰 URDU CLEAR - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے!",
+    "🇵🇰 SINDHI KHALIS - سنڌي خالص": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
+    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है!",
 }
 
-default_text = TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي خالص"])
-text_input = st.text_area(f"Text - {cat} - Khalis Pure - No Cut:", value=default_text, height=240, max_chars=MAX_CHARS)
-st.metric(f"{len(text_input)} chars", f"{len(text_input)//12} sec")
+text_input = st.text_area(f"Text - {cat} - Khalis Pure - No Cut:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي خالص"]), height=240, max_chars=MAX_CHARS)
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
@@ -121,16 +93,27 @@ async def try_edge(text, voice, rate, path):
             await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
             if os.path.exists(path) and os.path.getsize(path) > 500:
                 return True
-        except Exception as e:
+        except:
             await asyncio.sleep(1)
     return False
 
-def try_gtts(text, path, cat):
+# SINDHI KHALIS BUG FIX - sd language!
+def try_gtts(text, path, category):
     try:
-        lang = 'ar' if 'ARABIC' in cat else 'en' if 'ENGLISH' in cat else 'ur'
+        if "SINDHI" in category:
+            lang = 'sd'  # SINDHI KHALIS FIX
+        elif "ARABIC" in category:
+            lang = 'ar'
+        elif "ENGLISH" in category:
+            lang = 'en'
+        elif "HINDI" in category:
+            lang = 'hi'
+        else:
+            lang = 'ur'
         gTTS(text=text, lang=lang, slow=False).save(path)
         return True
-    except:
+    except Exception as e:
+        print(f"GTTS {lang} fail {e}, trying ur")
         try:
             gTTS(text=text, lang='ur', slow=False).save(path)
             return True
@@ -154,7 +137,7 @@ async def gen(text, voice, rate, category):
             files.append(path)
         bar.progress((i+1)/len(parts))
     if not files:
-        raise Exception("Voice fail - Dobara try karo")
+        raise Exception("Voice fail")
     final = f"voice/FINAL_SINDHI_KHALIS.mp3"
     try:
         import imageio_ffmpeg
