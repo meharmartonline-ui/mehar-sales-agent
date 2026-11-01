@@ -1,21 +1,32 @@
 import streamlit as st, os, asyncio, shutil, subprocess, re
+from dotenv import load_dotenv
+load_dotenv()
 import edge_tts
+
+# === GROQ SETTING - KEYS ===
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
+try:
+    from groq import Groq
+    groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+except:
+    groq_client = None
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 
-# === FIX 1: RED LINE OFF - BROWSER SPELLCHECK BAND ===
+# Red line off
 st.markdown("""
-<style>
-textarea { spellcheck: false !important; }
-div[data-baseweb="textarea"] textarea { text-decoration: none !important; }
-</style>
-<script>
-setInterval(()=>{document.querySelectorAll('textarea').forEach(t=>t.setAttribute('spellcheck','false'))},500);
-</script>
+<style>textarea{spellcheck:false !important}</style>
+<script>setInterval(()=>{document.querySelectorAll('textarea').forEach(t=>t.setAttribute('spellcheck','false'))},500);</script>
 """, unsafe_allow_html=True)
 
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL FIXED: V95 System Same - Voice Bug Fix - Red Line OFF - Pakistan=Pakistan!")
+
+if not GROQ_API_KEY:
+    st.warning("⚠️ GROQ_API_KEY nahi mila - .env me dalo ya Streamlit Secrets me - Bina Groq ke bhi chalega - Edge TTS se!")
+else:
+    st.success(f"✅ Groq Connected - Key: {GROQ_API_KEY[:10]}... - Auto Convert All Ready!")
+
+st.success("V95 FINAL: Dynamic - Jo Type Karo Wohi Voice! + Groq Auto Convert!")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -63,65 +74,94 @@ TIME_OPTIONS = {
     "6 Minutes": 360, "7 Minutes": 420, "8 Minutes": 480, "9 Minutes": 540, "10 Minutes": 600,
 }
 
-# PURE SINDHI 52 ALPHABET - ALFABET CHECK 100% - VOICE BUG FIX
 PURE_SINDHI_TTS_MAP = {
     "ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ",
     "ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک",
     "ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ",
 }
 
+# === GROQ AUTO CONVERT ALL 5 LANGUAGE ===
+def groq_convert(text, target_lang):
+    if not groq_client or not text.strip():
+        return text
+    prompt = f"Translate this text to {target_lang}. Keep 'Pakistan' as 'Pakistan' always, never translate to Bharat. Only give translated text, no explanation. Text: {text}"
+    try:
+        chat = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role":"user","content":prompt}],
+            temperature=0.1,
+            max_tokens=2000
+        )
+        return chat.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"Groq Error: {e}")
+        return text
+
 st.markdown("### 🌍 LANGUAGE CATEGORY")
-language_cat = st.selectbox("Language Category - Jo bhi bhasha chahiye:", list(VOICE_CATEGORIES.keys()), index=0)
+language_cat = st.selectbox("Language Category:", list(VOICE_CATEGORIES.keys()), index=0)
 voices = VOICE_CATEGORIES[language_cat]
 voice_key = st.selectbox(f"{language_cat} - Age 10-60:", list(voices.keys()), index=2)
 voice_name = voices[voice_key]
-st.info(f"SELECTED: {language_cat} - {voice_key}")
 
 time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=2)
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
+use_groq = st.checkbox("🔄 Groq Auto Convert All Language ON (Sindhi Urdu Hindi English Arabic)", value=False if not groq_client else True)
+
+if "main_text" not in st.session_state:
+    st.session_state.main_text = ""
+if "last_lang" not in st.session_state:
+    st.session_state.last_lang = language_cat
+
+# Auto convert on change if Groq ON
+if use_groq and st.session_state.main_text.strip() and language_cat != st.session_state.last_lang:
+    with st.spinner(f"Groq {st.session_state.last_lang} -> {language_cat}..."):
+        st.session_state.main_text = groq_convert(st.session_state.main_text, language_cat)
+st.session_state.last_lang = language_cat
+
 st.markdown("### ✍️ YAHAN JO BHI TYPE KARO GE - WOHI VOICE BANEGA!")
-st.info("💡 Mehar Mart sirf Example hai - Aap koi bhi text type karo - Jo bhi likho ge wohi voice banega!")
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🗑️ CLEAR", use_container_width=True):
+        st.session_state.main_text = ""
+        st.rerun()
+with col2:
+    if st.button("🔄 Groq Convert Now", type="primary", use_container_width=True, disabled=not groq_client):
+        st.session_state.main_text = groq_convert(st.session_state.main_text, language_cat)
+        st.rerun()
 
 text_input = st.text_area(
-    f"✍️ Yahan apna koi bhi text likho ({MAX_CHARS} max) - {language_cat} - {time_label} - Jo likho ge wohi bolega:",
-    value="",
-    placeholder="Yahan jo bhi type karo ge wohi voice banega...\n\nSindhi: السلام عليڪم! منهنجا پيارا ڀائرو...\nUrdu: السلام علیکم! میرے پیارے بھائیو...\nHindi: नमस्ते! मैं जो भी लिखूंगा वही...\nEnglish: Hello! Whatever I type will become voice!",
+    f"✍️ Yahan text likho ({MAX_CHARS} max) - {language_cat}:",
+    value=st.session_state.main_text,
+    placeholder="Sindhi: السلام عليڪم! منهنجا پيارا ڀائرو...\nUrdu: السلام علیکم! میرے پیارے بھائیو...\nHindi: नमस्ते! मैं जो भी लिखूंगा...\nEnglish: Hello! Whatever I type...",
     height=260,
-    max_chars=MAX_CHARS
+    max_chars=MAX_CHARS,
+    key="main_input"
 )
 
-if not text_input.strip():
-    st.warning("⚠️ Yahan apna text likho - Jo bhi likho ge wohi voice banega - Khali hai abhi!")
-else:
-    st.success(f"✅ {len(text_input)} chars typed - Jo likha hai wohi bolega!")
+if text_input != st.session_state.main_text:
+    st.session_state.main_text = text_input
 
-st.metric(f"{len(text_input)} / {MAX_CHARS} chars", f"{len(text_input)//14} sec / {MAX_SEC} sec")
+if not text_input.strip():
+    st.warning("⚠️ Khali hai - Kuch likho!")
+else:
+    st.success(f"✅ {len(text_input)} chars - Ready!")
+
 st.progress(min(len(text_input)/MAX_CHARS, 1.0) if text_input else 0)
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
 def clean_dynamic_any_text(text, lang_cat):
-    """FIXED - V95 System Same - Sirf Voice Bug Fix"""
-    if not text.strip():
-        return ""
+    if not text.strip(): return ""
     t = text.strip()
-    
-    # === FIX 2: VOICE BUG - PAKISTAN = PAKISTAN - BHARAT AUTO NAHI ===
-    # Hindi me Pakistan likho to Bharat na bole - Is liye Pakistan ko English me protect
-    # Pehle jo bhi Pakistan likha ho usko English Pakistan banao
-    t = t.replace("पाकिस्तान", "Pakistan").replace("پاڪستان", "Pakistan").replace("پاکستان", "Pakistan").replace("باكستان", "Pakistan")
-    # Ab Pakistan ko aise rakho ke har voice Pakistan hi bole - Hindi bhi
-    # Madhur/Swara "Pakistan" English word ko Pakistan hi bolta hai - Bharat nahi
-    
-    # === FIX 3: SINDHI ALFABET CHECK 100% - 52 HARF + LAMBA AAHE ===
+    # Pakistan protect - Bharat bug fix
+    t = t.replace("पाकिस्तान", "Pakistan").replace("پاڪستان", "Pakistan").replace("پاکستان", "Pakistan")
     if "SINDHI" in lang_cat:
         for sc, tc in PURE_SINDHI_TTS_MAP.items():
             t = t.replace(sc, tc)
-        # Lamba Aahe - Pehle chhota bolta tha - Ab lamba - Voice bug fix
-        t = t.replace("آهي", "آآہی ").replace("آهي", "آآہی ").replace("آہی", "آآہی ").replace("آہے", "آآہے ")
-        t = t.replace("تہ", "تہہ ").replace("سڀ", "سڀہ ").replace("هوندا", "ہونداا ")
-        t = t.replace("سجي", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
+        t = t.replace("آهي", "آآہی ").replace("آهي", "آآہی ").replace("آہی", "آآہی ")
+        t = t.replace("سجي", "سجّی").replace("عليکم", "علیکم")
         t = t.replace("100%", "سئو سيڪڙو")
         t = re.sub(r'\b2975\b', "بہ ہزار نو سو پنجاہتر", t)
     return t
@@ -149,7 +189,7 @@ async def gen_edge(text, voice, rate, path):
     return False
 
 async def gen_dynamic(text, voice, rate, lang_cat):
-    if not text.strip(): raise Exception("Text khali hai - Kuch likho!")
+    if not text.strip(): raise Exception("Khali hai!")
     if os.path.exists("voice"): shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
     cleaned = clean_dynamic_any_text(text, lang_cat)
@@ -162,7 +202,7 @@ async def gen_dynamic(text, voice, rate, lang_cat):
         ok = await gen_edge(p, voice, rate, path)
         if ok: files.append(path)
     if not files: raise Exception("Voice fail")
-    final = f"voice/FINAL_Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
+    final = f"voice/FINAL_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -172,30 +212,19 @@ async def gen_dynamic(text, voice, rate, lang_cat):
     except: final = files[0]
     return final
 
-if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wohi Banao", type="primary", use_container_width=True):
+if st.button(f"🎙️ {language_cat} - {voice_key} - Voice Banao", type="primary", use_container_width=True):
     if not text_input.strip():
-        st.error("⚠️ Pehle kuch likho - Text box khali hai!")
+        st.error("⚠️ Pehle kuch likho!")
     else:
-        with st.spinner(f"{voice_key} - Jo likha hai wohi bana raha - {len(text_input)} chars..."):
+        with st.spinner(f"{voice_key} bana raha..."):
             try:
                 path = asyncio.run(gen_dynamic(text_input, voice_name, rate_opt, language_cat))
                 st.balloons()
-                st.success(f"✅ Ready! Jo likha tha wohi bana - {language_cat} - {len(text_input)} chars!")
+                st.success(f"✅ Ready! {language_cat} - {len(text_input)} chars!")
                 st.audio(path)
-                st.markdown(f"**Aap ne likha tha:**")
-                st.write(text_input)
-                st.caption(f"Cleaned for TTS: {clean_dynamic_any_text(text_input, language_cat)}")
                 with open(path, "rb") as f:
-                    st.download_button(f"📥 Download - Jo Likha Wahi Voice", f, file_name=f"Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
+                    st.download_button(f"📥 Download", f, file_name=f"Voice_{MAX_SEC}s.mp3")
             except Exception as e: st.error(f"Error: {e}")
 
 st.divider()
-st.info("""
-**V95 FINAL FIXED - System Same - Sirf Bug Fix:**
-
-**1. Category Fix: Asad Uzma 10-60 Sal - V95 wala full - Kabhi gayab nahi!**
-**2. Red Line Fix: Spellcheck OFF - Sindhi me red underline khatam!**
-**3. Voice Bug Fix: Pakistan=Pakistan - Hindi me Bharat nahi bolega! Sindhi آهي lamba bolega! 52 Harf saaf!**
-**4. Alfabet Check: ٻ ڄ ٽ ڪ ڙ ھ -> ب ج ٹ ک ڑ ہ - TTS saaf bolega!**
-**5. System Same: Jo likho wahi bolega - Mehar Mart sirf example!**
-""")
+st.caption("V95 + Groq - Requirements + .env + app.py - 3 file - Full system!")
