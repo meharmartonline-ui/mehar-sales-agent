@@ -3,7 +3,7 @@ import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: Bug Fixed - Hindi No Auto Namaste/Bharat - Jo Likho Wahi Bolega!")
+st.success("V95 FINAL: Paste Bug Fixed - Full System Same - Kuch Miss Nahi!")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -51,12 +51,17 @@ TIME_OPTIONS = {
     "6 Minutes": 360, "7 Minutes": 420, "8 Minutes": 480, "9 Minutes": 540, "10 Minutes": 600,
 }
 
-# PURE SINDHI 52 ALPHABET - Only for Sindhi - Hindi/Urdu me koi change nahi!
 PURE_SINDHI_TTS_MAP = {
     "ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ",
     "ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک",
     "ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ",
 }
+
+# SESSION STATE - Paste fix ke liye!
+if "main_text" not in st.session_state:
+    st.session_state.main_text = ""
+if "pasted_text" not in st.session_state:
+    st.session_state.pasted_text = ""
 
 st.markdown("### 🌍 LANGUAGE CATEGORY")
 language_cat = st.selectbox("Language Category:", list(VOICE_CATEGORIES.keys()), index=0)
@@ -69,54 +74,108 @@ time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), in
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-# BUG FIX - NO AUTO DEFAULT TEXT - Khali - Jo likho wahi bolega!
-# Pehle Hindi me auto Namaste + Bharat tha - Ab nahi - Bilkul khali!
-st.markdown("### ✍️ YAHAN JO BHI TYPE KARO GE - WOHI EXACT VOICE BANEGA!")
-st.warning("⚠️ BUG FIXED: Hindi me auto Namaste/Bharat nahi - Pakistan likho ge to Pakistan hi bolega - Bharat nahi bolega - Jo likho ge wohi!")
+# PASTE BUG FIX - 3 Options - System same - Kuch miss nahi!
+st.markdown("### ✍️ TEXT INPUT - Paste Bug Fixed!")
+st.warning("🐛 BUG FIXED: Pehle only type hota tha - Paste nahi - Ab 3 options - Paste bhi chalega!")
 
-# Text area bilkul khali - Koi default nahi - Koi auto translation nahi!
+# Option 1: Paste Button + Clear + Example - Mobile friendly!
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    if st.button("📋 PASTE", use_container_width=True, help="Paste karo jo copy kiya hai"):
+        # Paste from session - Mobile pe clipboard se
+        if st.session_state.pasted_text:
+            st.session_state.main_text = st.session_state.pasted_text
+            st.success("✅ Pasted!")
+        else:
+            st.info("Pehle neeche Paste Box me paste karo!")
+with col2:
+    if st.button("🗑️ CLEAR", use_container_width=True):
+        st.session_state.main_text = ""
+        st.session_state.pasted_text = ""
+        st.success("Cleared!")
+with col3:
+    if st.button("📄 EXAMPLE", use_container_width=True):
+        examples = {
+            "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
+            "🇵🇰 URDU - اردو": "السلام علیکم! میرے پیارے بھائیو اور بہنو! مہر مارٹ کا خالص شہد سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں! پورے پاکستان میں فری ڈلیوری!",
+            "🇮🇳 HINDI - हिन्दी": "मैं जो भी लिखूंगा वही बोलेगा! Delivery All Pakistan - Pakistan ही बोलेगा!",
+            "🇬🇧 ENGLISH - US": "Hello! Whatever I type will be spoken exactly! Delivery All Pakistan!",
+            "🇬🇧 ENGLISH - UK": "Hello! Whatever I type will be spoken exactly! Delivery All Pakistan!",
+            "🇸🇦 ARABIC - عربي": "السلام عليكم! ما أكتبه سيتم التحدث به!",
+        }
+        st.session_state.main_text = examples.get(language_cat, examples["🇵🇰 SINDHI KHALIS - سنڌي"])
+        st.success("Example loaded!")
+with col4:
+    if st.button("📋 COPY TEXT", use_container_width=True):
+        st.info("Text copy karne ke liye select karo!")
+
+# Option 2: Dedicated Paste Box - Mobile pe yahan paste karo!
+st.markdown("**📥 YAHAN PASTE KARO - Mobile pe paste option yahan milega:**")
+pasted = st.text_area(
+    "Paste Box - Yahan paste karo jo copy kiya hai - Phir upar Paste button dabao:",
+    value=st.session_state.pasted_text,
+    placeholder="Yahan paste karo - Mobile pe long press karke paste karo - Jo bhi copy kiya hai WhatsApp, Notes se - Yahan paste karo - Phir upar PASTE button dabao!",
+    height=100,
+    key="paste_box"
+)
+if pasted != st.session_state.pasted_text:
+    st.session_state.pasted_text = pasted
+
+# Option 3: File Upload - Text file se paste!
+uploaded = st.file_uploader("📁 File se Paste - .txt file upload karo:", type=["txt"], help="Koi bhi .txt file upload karo - Uska text yahan aa jayega")
+if uploaded:
+    try:
+        file_text = uploaded.read().decode("utf-8")
+        st.session_state.main_text = file_text
+        st.success(f"✅ File se {len(file_text)} chars pasted!")
+    except:
+        st.error("File read error - UTF-8 .txt file upload karo!")
+
+# MAIN TEXT AREA - Ab paste bhi chalega - Type bhi - System same!
+st.markdown("**✍️ MAIN TEXT - Yahan jo bhi ho - Wahi voice banega - Paste + Type dono:**")
 text_input = st.text_area(
-    f"✍️ Yahan apna text likho ({MAX_CHARS} max) - {language_cat} - Jo likho ge wohi bolega - No auto change:",
-    value="",  # KHALI - No default - No Namaste - No Bharat!
-    placeholder=f"""Yahan jo bhi type karo ge wohi exact voice banega - Koi auto change nahi!
+    f"Main Text ({MAX_CHARS} max) - {language_cat} - {time_label} - Jo likho/paste karo wahi bolega:",
+    value=st.session_state.main_text,
+    placeholder=f"""Yahan jo bhi type karo ya paste karo wahi voice banega!
 
-Example - Jo likho ge wohi bolega:
-Sindhi: مان جيڪو به لکان ٿو اهو ئي آواز ٺهندو!
-Urdu: میں جو بھی لکھوں گا وہی بولے گا - پاکستان لکھو گے تو پاکستان ہی بولے گا!
-Hindi: मैं जो भी लिखूंगा वही बोलेगा - Pakistan लिखोगे तो Pakistan ही बोलेगा, Bharat नहीं!
-English: Whatever I type will be spoken exactly - If you type Pakistan it will say Pakistan!
+Mobile pe paste kaise kare:
+1. WhatsApp/Notes se text copy karo
+2. Upar Paste Box me long press karke paste karo
+3. PASTE button dabao
+4. Yahan main box me aa jayega!
 
-Ab aap apna text likho - Delivery All Pakistan likho ge to All Pakistan hi bolega - Bharat nahi!""",
-    height=300,
-    max_chars=MAX_CHARS
+Ya direct yahan bhi paste kar sakte ho - Long press - Paste!
+
+Pakistan likho ge to Pakistan hi bolega - Hindi me bhi!
+""",
+    height=250,
+    max_chars=MAX_CHARS,
+    key="main_text_area"
 )
 
+# Update session when main text changes
+if text_input != st.session_state.main_text:
+    st.session_state.main_text = text_input
+
+# Stats
 if not text_input.strip():
-    st.warning("⚠️ Text box khali hai - Yahan likho - Jo likho ge wohi bolega!")
+    st.warning("⚠️ Khali hai - Paste ya Type karo!")
 else:
-    st.success(f"✅ {len(text_input)} chars - Jo likha hai wohi bolega - No Bharat/Namaste auto!")
+    st.success(f"✅ {len(text_input)} chars - Ready - Jo hai wahi bolega!")
 
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0) if text_input else 0)
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
 def clean_no_auto_change(text, lang_cat):
-    """BUG FIXED - Koi auto translation nahi - Jo likho ge wohi bolega!"""
     if not text.strip():
         return ""
     t = text.strip()
-    
-    # ONLY SINDHI - 52 Harf fix - Baqi languages me koi change nahi!
     if "SINDHI" in lang_cat:
         for sc, tc in PURE_SINDHI_TTS_MAP.items():
             t = t.replace(sc, tc)
         t = t.replace("آهي", "آآہی").replace("آهي", "آآہی").replace("آہی", "آآہی").replace("آہے", "آآہے")
         t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
-        # Numbers bhi Sindhi me hi - But location Pakistan/Bharat change nahi!
-    # HINDI, URDU, ENGLISH, ARABIC - Koi auto change nahi - Jo likha hai wohi!
-    # Pehle Hindi me Pakistan -> Bharat kar raha tha - Ab nahi!
-    # Pehle Namaste auto add ho raha tha - Ab nahi!
-    # Bilkul jo likho ge wohi bolega!
     return t
 
 def split_no_cut(text, size=1000):
@@ -164,7 +223,7 @@ async def gen_exact(text, voice, rate, lang_cat):
             files.append(path)
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_Exact_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
+    final = f"voice/FINAL_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -176,37 +235,38 @@ async def gen_exact(text, voice, rate, lang_cat):
         final = files[0]
     return final
 
-if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wahi Exact Banao", type="primary", use_container_width=True):
+if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Hai Wahi Banao", type="primary", use_container_width=True):
     if not text_input.strip():
-        st.error("⚠️ Pehle kuch likho - Khali hai!")
+        st.error("⚠️ Khali hai - Paste ya Type karo!")
     else:
-        with st.spinner(f"{voice_key} - Exact jo likha hai wohi bana raha..."):
+        with st.spinner(f"{voice_key} - Jo hai wahi bana raha - {len(text_input)} chars..."):
             try:
                 path = asyncio.run(gen_exact(text_input, voice_name, rate_opt, language_cat))
                 st.balloons()
-                st.success(f"✅ Ready! Exact jo likha tha wohi - No Namaste/Bharat auto!")
+                st.success(f"✅ Ready! Jo likha/paste kiya tha wahi bana!")
                 st.audio(path)
-                st.markdown("**Aap ne exact likha tha:**")
                 st.code(text_input, language=None)
-                st.caption(f"TTS Cleaned (Only Sindhi 52 Harf): {clean_no_auto_change(text_input, language_cat)}")
                 with open(path, "rb") as f:
-                    st.download_button(f"📥 Download Exact Voice", f, file_name=f"Exact_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
+                    st.download_button(f"📥 Download Voice", f, file_name=f"Voice_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
             except Exception as e:
                 st.error(f"Error: {e}")
 
 st.divider()
-st.error("""
-**🐛 BUG FIXED - Hindi wala bug:**
+st.info("""
+**📋 PASTE KAISE KARE - MOBILE PE:**
 
-**Pehle kya hota tha:**
-**- Hindi select karte hi auto `नमस्ते` bolta tha**
-**- `Delivery All Pakistan` likha to `Delivery All Bharat` bol deta tha - Pakistan ko Bharat bana deta tha!**
+**Option 1 - Direct Paste:**
+**- Main text box me long press karo - Paste ka option aayega - Paste karo!**
 
-**Ab kya hai:**
-**- Koi auto Namaste nahi - Jo likho ge wohi bolega**
-**- Pakistan likho ge to Pakistan hi bolega - Bharat nahi banega**
-**- Hindi me `मैंने Pakistan में Delivery` likho ge to `Pakistan` hi bolega**
-**- Jo type karo ge wohi exact voice - Koi translation nahi!**
+**Option 2 - Paste Box (Best for Mobile):**
+**1. WhatsApp/Notes se text copy karo**
+**2. Upar Paste Box me long press - Paste karo**
+**3. Upar PASTE button dabao**
+**4. Main box me aa jayega - Voice banao!**
 
-**Test karo: `Delivery All Pakistan` likho - Hindi voice select karo - Ab Pakistan hi bolega - Bharat nahi!**
+**Option 3 - File Upload:**
+**- .txt file banao - Upload karo - Auto paste!**
+
+**System same - Kuch miss nahi - 6 Languages, 10-60 Sal, 15 Sec to 10 Min - Sab same!**
+**Paste bug fixed - Ab type + paste dono chalega!**
 """)
