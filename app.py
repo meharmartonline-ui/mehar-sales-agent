@@ -1,63 +1,162 @@
 import streamlit as st, os, asyncio, shutil, subprocess
 import edge_tts
-from gtts import gTTS
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95: SINDHI KHALIS FIX - Salam + 2975 Sindhi me bolega")
+st.success("V95 FINAL: 5 Languages Clear Uchar + Ginti Fix")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
-        "10 Sal Larki": "ur-PK-UzmaNeural",
-        "20 Sal Larki": "ur-PK-UzmaNeural",
-        "30 Sal Larki": "ur-PK-UzmaNeural",
-        "50 Sal Larki": "ur-PK-UzmaNeural",
-        "60 Sal Larki": "ur-PK-UzmaNeural",
-        "10 Sal Larka": "ur-PK-AsadNeural",
-        "20 Sal Larka": "ur-PK-AsadNeural",
-        "30 Sal Larka": "ur-PK-AsadNeural",
-        "50 Sal Larka": "ur-PK-AsadNeural",
-        "60 Sal Larka": "ur-PK-AsadNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    },
+    "🇵🇰 URDU CLEAR - اردو": {
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    },
+    "🇮🇳 HINDI - हिंदी": {
+        "10 Sal Larka - Asad": "hi-IN-MadhurNeural",
+        "20 Sal Larka - Asad": "hi-IN-MadhurNeural",
+        "30 Sal Larka - Asad": "hi-IN-MadhurNeural",
+        "50 Sal Larka - Asad": "hi-IN-MadhurNeural",
+        "60 Sal Larka - Asad": "hi-IN-MadhurNeural",
+        "10 Sal Larki - Uzma": "hi-IN-SwaraNeural",
+        "20 Sal Larki - Uzma": "hi-IN-SwaraNeural",
+        "30 Sal Larki - Uzma": "hi-IN-SwaraNeural",
+        "50 Sal Larki - Uzma": "hi-IN-SwaraNeural",
+        "60 Sal Larki - Uzma": "hi-IN-SwaraNeural",
+    },
+    "🇸🇦 ARABIC - العربية": {
+        "10 Sal Larka - Asad": "ar-SA-HamedNeural",
+        "20 Sal Larka - Asad": "ar-SA-HamedNeural",
+        "30 Sal Larka - Asad": "ar-SA-HamedNeural",
+        "50 Sal Larka - Asad": "ar-SA-HamedNeural",
+        "60 Sal Larka - Asad": "ar-SA-HamedNeural",
+        "10 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
+        "20 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
+        "30 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
+        "50 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
+        "60 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
+    },
+    "🇺🇸 ENGLISH - English": {
+        "10 Sal Larka - Asad": "en-US-GuyNeural",
+        "20 Sal Larka - Asad": "en-US-GuyNeural",
+        "30 Sal Larka - Asad": "en-US-GuyNeural",
+        "50 Sal Larka - Asad": "en-US-GuyNeural",
+        "60 Sal Larka - Asad": "en-US-GuyNeural",
+        "10 Sal Larki - Uzma": "en-US-JennyNeural",
+        "20 Sal Larki - Uzma": "en-US-JennyNeural",
+        "30 Sal Larki - Uzma": "en-US-JennyNeural",
+        "50 Sal Larki - Uzma": "en-US-JennyNeural",
+        "60 Sal Larki - Uzma": "en-US-JennyNeural",
     },
 }
 
-cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
+TIME_OPTIONS = {
+    "15 Second": 15,
+    "20 Second": 20,
+    "30 Second": 30,
+    "60 Second (1 Minute)": 60,
+    "2 Minutes": 120,
+    "3 Minutes": 180,
+    "4 Minutes": 240,
+    "5 Minutes": 300,
+    "6 Minutes": 360,
+    "7 Minutes": 420,
+    "8 Minutes": 480,
+    "9 Minutes": 540,
+    "10 Minutes": 600,
+}
+
+cat = st.selectbox("📁 CATEGORY LANGUAGE:", list(VOICE_CATEGORIES.keys()), index=0)
 voices = VOICE_CATEGORIES[cat]
-voice_key = st.selectbox(f"{cat} - Age 10-20-30-50-60:", list(voices.keys()), index=6)
+voice_key = st.selectbox(f"{cat} - Age 10-60:", list(voices.keys()), index=1)
 voice_name = voices[voice_key]
+st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name}")
 
-st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis Pure")
+time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=0)
+MAX_SEC = TIME_OPTIONS[time_label]
+MAX_CHARS = MAX_SEC * 14
 
-MAX_SEC = 15
-MAX_CHARS = 225
+TEXTS = {
+    "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
+    "🇵🇰 URDU CLEAR - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں! سارے پاکستان میں فری ڈلیوری!",
+    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है! सिर्फ दो हजार नौ सौ पचहत्तर रुपये में! पूरे भारत में फ्री डिलीवरी!",
+    "🇸🇦 ARABIC - العربية": "السلام عليكم! اخواني واخواتي الاعزاء! عسل مهر مارت نقي مئة بالمئة! فقط الفان وتسعمائة وخمسة وسبعون روبية! توصيل مجاني في جميع انحاء باكستان!",
+    "🇺🇸 ENGLISH - English": "Assalamu Alaikum! My dear brothers and sisters! Mehar Mart pure honey is one hundred percent pure! Only two thousand nine hundred seventy five rupees! Free delivery all over Pakistan!",
+}
 
-text_input = st.text_area(f"Text (225 max) - {cat} - Khalis Pure:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!", height=220, max_chars=MAX_CHARS)
-st.metric(f"{len(text_input)} chars", f"{len(text_input)//14} sec")
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي"]), height=220, max_chars=MAX_CHARS)
+st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
+st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
-rate_opt = "-5%"
+rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-# SINDHI KHALIS FIX - Salam + Ginti dono Sindhi me!
-def fix_sindhi_khalis(text):
-    # ! se ruk jata hai - Is ko . banao
-    text = text.replace("!", "۔").replace("!", "۔")
-    # Ginti fix - 2975 ko Sindhi lafzon me - Ta ke Sindhi me bole
-    text = text.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
-    text = text.replace("اوڻٽيهه سو", "ٻه هزار نو سو")
-    # Agar digits hon to bhi Sindhi me
-    text = text.replace("2975", "ٻه هزار نو سو پنجاهتر")
-    text = text.replace("2975 روپين ۾", "ٻه هزار نو سو پنجاهتر روپين ۾")
-    return text.strip()
-
-def clean(t): 
-    return fix_sindhi_khalis(t)
+# SAB LANGUAGE KA UCHAR + GINTI CLEAR FIX!
+def clean_all_languages(text, category):
+    t = text.strip()
+    # Common fix - ! se rukta hai
+    t = t.replace("!", "۔" if "SINDHI" in category or "URDU" in category else "।" if "HINDI" in category else "." if "ARABIC" in category else ".")
+    t = t.replace("!", ".")
+    
+    if "SINDHI" in category:
+        t = t.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
+        t = t.replace("2975", "ٻه هزار نو سو پنجاهتر")
+        t = t.replace("100%", "هڪ سئو سيڪڙو").replace("100 فیصد", "هڪ سئو سيڪڙو")
+        t = t.replace("%", " سيڪڙو")
+    elif "URDU" in category:
+        t = t.replace("2975", "دو ہزار نو سو پچھتر")
+        t = t.replace("اوڻٽيهه سو پنجاهتر", "دو ہزار نو سو پچھتر")
+        t = t.replace("100%", "ایک سو فیصد")
+        t = t.replace("%", " فیصد")
+    elif "HINDI" in category:
+        t = t.replace("2975", "दो हजार नौ सौ पचहत्तर")
+        t = t.replace("100%", "सौ प्रतिशत")
+        t = t.replace("%", " प्रतिशत")
+    elif "ARABIC" in category:
+        t = t.replace("2975", "الفان وتسعمائة وخمسة وسبعون")
+        t = t.replace("100%", "مئة بالمئة")
+        t = t.replace("%", " بالمئة")
+    elif "ENGLISH" in category:
+        t = t.replace("2975", "two thousand nine hundred seventy five")
+        t = t.replace("100%", "one hundred percent")
+        t = t.replace("%", " percent")
+    
+    return t
 
 def split_no_cut(text, size=1000):
     if len(text) <= size:
         return [text]
-    return [text[i:i+size] for i in range(0, len(text), size)]
+    words = text.split(' ')
+    parts, cur = [], ""
+    for w in words:
+        if not w: continue
+        if len(cur) + len(w) + 1 <= size:
+            cur = cur + " " + w if cur else w
+        else:
+            if cur: parts.append(cur)
+            cur = w
+    if cur: parts.append(cur)
+    return parts if parts else [text]
 
-async def try_edge(text, voice, rate, path):
-    is_larka = "Larka" in voice or "Asad" in voice
+async def gen_edge(text, voice, rate, path):
+    is_larka = "Larka" in voice or "Asad" in voice or "Madhur" in voice or "Hamed" in voice or "Guy" in voice
     tries = 5 if is_larka else 3
     for _ in range(tries):
         try:
@@ -70,54 +169,23 @@ async def try_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-# SINDHI KHALIS - GTTS SD - Salam + Ginti dono Sindhi khalis!
-def try_gtts_sindhi_khalis(text, path, voice_key):
-    try:
-        # Sindhi khalis - sd language - Salam + ginti dono Sindhi me
-        gTTS(text=text, lang='sd', slow=False).save(path)
-        # LARKA FIX - Asad ke liye awaz mardana karo
-        if "Larka" in voice_key or "Asad" in voice_key:
-            try:
-                import imageio_ffmpeg
-                ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-                temp_path = path.replace(".mp3", "_male.mp3")
-                # Pitch neeche - Mardana awaz
-                subprocess.run([ffmpeg, "-y", "-i", path, "-filter:a", "asetrate=22050*0.85,atempo=1.18,aresample=22050", "-c:a", "libmp3lame", temp_path], check=True, capture_output=True)
-                if os.path.exists(temp_path):
-                    os.replace(temp_path, path)
-            except:
-                pass
-        return True
-    except Exception as e:
-        print(f"SD fail {e}")
-        try:
-            gTTS(text=text, lang='ur', slow=False).save(path)
-            return True
-        except:
-            return False
-
-async def gen(text, voice, rate, voice_key):
+async def gen(text, voice, rate, category):
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = fix_sindhi_khalis(text)
+    text = clean_all_languages(text, category)
     parts = split_no_cut(text, 1000)
     files = []
-    is_larka = "Larka" in voice_key or "Asad" in voice_key
     for i, p in enumerate(parts):
-        p = clean(p)
+        p = clean_all_languages(p, category)
         if not p: continue
-        safe = "ASAD_LARKA" if is_larka else "UZMA_LARKI"
-        path = f"voice/{safe}_{i}.mp3"
-        # SINDHI KHALIS - Pehle SD Sindhi - Salam + Ginti dono khalis
-        ok = try_gtts_sindhi_khalis(p, path, voice_key)
-        if not ok:
-            ok = await try_edge(p, voice, rate, path)
+        path = f"voice/{voice.replace('-','_')}_{i}.mp3"
+        ok = await gen_edge(p, voice, rate, path)
         if ok:
             files.append(path)
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_SINDHI_KHALIS_{safe}.mp3"
+    final = f"voice/FINAL_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -129,18 +197,15 @@ async def gen(text, voice, rate, voice_key):
         final = files[0]
     return final
 
-if st.button(f"🎙️ {cat} - {voice_key} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - Sindhi Khalis Salam + Ginti..."):
+if st.button(f"🎙️ {cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
+    with st.spinner(f"{voice_key} - {time_label} - Clear Uchar..."):
         try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt, voice_key))
+            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
             st.balloons()
-            if "Larka" in voice_key:
-                st.success(f"✅ Ready! LARKA Asad - Sindhi Khalis - السلام عليڪم + ٻه هزار نو سو پنجاهتر - Mardana!")
-            else:
-                st.success(f"✅ Ready! LARKI Uzma - Sindhi Khalis - السلام عليڪم + ٻه هزار نو سو پنجاهتر - Zanana!")
+            st.success(f"✅ Ready! {cat} - {voice_key} - {time_label} - Uchar + Ginti Clear!")
             st.audio(path)
-            st.caption(f"Fixed: {fix_sindhi_khalis(text_input)}")
+            st.caption(f"Fixed: {clean_all_languages(text_input, cat)}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key} Sindhi Khalis", f, file_name=f"{voice_key.replace(' ','_')}_SINDHI_KHALIS.mp3")
+                st.download_button(f"📥 Download {voice_key} {time_label} Clear", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_CLEAR.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
