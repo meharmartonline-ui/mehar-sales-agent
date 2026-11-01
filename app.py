@@ -4,98 +4,60 @@ from gtts import gTTS
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95: GINTI FIX - 2975 Sahi Bolega - Sindhi Khalis")
+st.success("V95: SINDHI KHALIS FIX - Salam + 2975 Sindhi me bolega")
 
 VOICE_CATEGORIES = {
-    "🇵🇰 URDU CLEAR - اردو": {
-        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
-    },
-    "🇵🇰 SINDHI KHALIS - سنڌي خالص": {
-        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
+    "🇵🇰 SINDHI KHALIS - سنڌي": {
+        "10 Sal Larki": "ur-PK-UzmaNeural",
+        "20 Sal Larki": "ur-PK-UzmaNeural",
+        "30 Sal Larki": "ur-PK-UzmaNeural",
+        "50 Sal Larki": "ur-PK-UzmaNeural",
+        "60 Sal Larki": "ur-PK-UzmaNeural",
+        "10 Sal Larka": "ur-PK-AsadNeural",
+        "20 Sal Larka": "ur-PK-AsadNeural",
+        "30 Sal Larka": "ur-PK-AsadNeural",
+        "50 Sal Larka": "ur-PK-AsadNeural",
+        "60 Sal Larka": "ur-PK-AsadNeural",
     },
 }
 
-cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=1)
+cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
 voices = VOICE_CATEGORIES[cat]
-voice_key = st.selectbox(f"{cat} - Asad/Uzma:", list(voices.keys()), index=6)
+voice_key = st.selectbox(f"{cat} - Age 10-20-30-50-60:", list(voices.keys()), index=6)
 voice_name = voices[voice_key]
 
-st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name}")
+st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis Pure")
 
-MAX_SEC = st.selectbox("⏱️ LIMIT:", [15, 30, 60, 120, 600], index=0)
-MAX_CHARS = MAX_SEC * 14
+MAX_SEC = 15
+MAX_CHARS = 225
 
-# GINTI FIX - Sahi Sindhi text
-TEXTS = {
-    "🇵🇰 URDU CLEAR - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی صرف 2975 روپے میں! سارے پاکستان میں فری ڈلیوری!",
-    "🇵🇰 SINDHI KHALIS - سنڌي خالص": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي صرف 2975 روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-}
+text_input = st.text_area(f"Text (225 max) - {cat} - Khalis Pure:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!", height=220, max_chars=MAX_CHARS)
+st.metric(f"{len(text_input)} chars", f"{len(text_input)//14} sec")
 
-text_input = st.text_area(f"Text - {cat} - Khalis:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي خالص"]), height=240, max_chars=MAX_CHARS)
+rate_opt = "-5%"
 
-char_count = len(text_input)
-sec_count = char_count / 14
-st.metric(f"{char_count} / {MAX_CHARS}", f"{sec_count:.1f} sec / {MAX_SEC} sec")
-st.progress(min(char_count/MAX_CHARS, 1.0))
-
-rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
-
-# GINTI FIX FUNCTION - Asal bug fix!
-def fix_ginti_khalis(text):
-    # اوڻٽيهه سو پنجاهتر - Ye TTS sahi nahi parhta - Is ko 2975 banao
-    replacements = {
-        "اوڻٽيهه سو پنجاهتر": "2975",
-        "اوڻٽيهه سو پنجاهتر روپين ۾": "2975 روپين ۾",
-        "اوڻٽيهه سو": "2900",
-        "اونٹيہہ سو پچھتر": "2975",
-        "انتیس سو پچھتر": "2975",
-        "انتیس سو": "2900",
-        "2975 روپين ۾!": "2975 روپين ۾",
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    return text
+# SINDHI KHALIS FIX - Salam + Ginti dono Sindhi me!
+def fix_sindhi_khalis(text):
+    # ! se ruk jata hai - Is ko . banao
+    text = text.replace("!", "۔").replace("!", "۔")
+    # Ginti fix - 2975 ko Sindhi lafzon me - Ta ke Sindhi me bole
+    text = text.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
+    text = text.replace("اوڻٽيهه سو", "ٻه هزار نو سو")
+    # Agar digits hon to bhi Sindhi me
+    text = text.replace("2975", "ٻه هزار نو سو پنجاهتر")
+    text = text.replace("2975 روپين ۾", "ٻه هزار نو سو پنجاهتر روپين ۾")
+    return text.strip()
 
 def clean(t): 
-    t = t.strip()
-    t = fix_ginti_khalis(t)  # GINTI FIX YAHAN!
-    return t
+    return fix_sindhi_khalis(t)
 
-def split_no_cut_khalis(text, category):
-    size = 1000 if "SINDHI" in category else 600
+def split_no_cut(text, size=1000):
     if len(text) <= size:
         return [text]
-    words = text.split(' ')
-    parts, cur = [], ""
-    for w in words:
-        if not w: continue
-        if len(cur) + len(w) + 1 <= size:
-            cur = cur + " " + w if cur else w
-        else:
-            if cur: parts.append(cur)
-            cur = w
-    if cur: parts.append(cur)
-    return parts if parts else [text]
+    return [text[i:i+size] for i in range(0, len(text), size)]
 
-async def try_edge_khalis(text, voice, rate, path, is_larka):
+async def try_edge(text, voice, rate, path):
+    is_larka = "Larka" in voice or "Asad" in voice
     tries = 5 if is_larka else 3
     for _ in range(tries):
         try:
@@ -105,43 +67,57 @@ async def try_edge_khalis(text, voice, rate, path, is_larka):
             if os.path.exists(path) and os.path.getsize(path) > 800:
                 return True
         except:
-            await asyncio.sleep(1.2)
+            await asyncio.sleep(1)
     return False
 
-def try_gtts_backup(text, path, category):
+# SINDHI KHALIS - GTTS SD - Salam + Ginti dono Sindhi khalis!
+def try_gtts_sindhi_khalis(text, path, voice_key):
     try:
-        lang = 'sd' if "SINDHI" in category else 'ur'
-        gTTS(text=text, lang=lang, slow=False).save(path)
+        # Sindhi khalis - sd language - Salam + ginti dono Sindhi me
+        gTTS(text=text, lang='sd', slow=False).save(path)
+        # LARKA FIX - Asad ke liye awaz mardana karo
+        if "Larka" in voice_key or "Asad" in voice_key:
+            try:
+                import imageio_ffmpeg
+                ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+                temp_path = path.replace(".mp3", "_male.mp3")
+                # Pitch neeche - Mardana awaz
+                subprocess.run([ffmpeg, "-y", "-i", path, "-filter:a", "asetrate=22050*0.85,atempo=1.18,aresample=22050", "-c:a", "libmp3lame", temp_path], check=True, capture_output=True)
+                if os.path.exists(temp_path):
+                    os.replace(temp_path, path)
+            except:
+                pass
         return True
-    except:
+    except Exception as e:
+        print(f"SD fail {e}")
         try:
             gTTS(text=text, lang='ur', slow=False).save(path)
             return True
         except:
             return False
 
-async def gen(text, voice, rate, category, voice_key):
-    if os.path.exists("voice"): shutil.rmtree("voice")
+async def gen(text, voice, rate, voice_key):
+    if os.path.exists("voice"):
+        shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    is_larka = "Larka" in voice_key or "Asad" in voice_key
-    text = fix_ginti_khalis(text)  # GINTI FIX
-    parts = split_no_cut_khalis(text, category)
+    text = fix_sindhi_khalis(text)
+    parts = split_no_cut(text, 1000)
     files = []
-    bar = st.progress(0)
+    is_larka = "Larka" in voice_key or "Asad" in voice_key
     for i, p in enumerate(parts):
         p = clean(p)
         if not p: continue
         safe = "ASAD_LARKA" if is_larka else "UZMA_LARKI"
         path = f"voice/{safe}_{i}.mp3"
-        ok = await try_edge_khalis(p, voice, rate, path, is_larka)
+        # SINDHI KHALIS - Pehle SD Sindhi - Salam + Ginti dono khalis
+        ok = try_gtts_sindhi_khalis(p, path, voice_key)
         if not ok:
-            ok = try_gtts_backup(p, path, category)
+            ok = await try_edge(p, voice, rate, path)
         if ok:
             files.append(path)
-        bar.progress((i+1)/len(parts))
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_{safe}_KHALIS.mp3"
+    final = f"voice/FINAL_SINDHI_KHALIS_{safe}.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -154,14 +130,17 @@ async def gen(text, voice, rate, category, voice_key):
     return final
 
 if st.button(f"🎙️ {cat} - {voice_key} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"Bana raha hun..."):
+    with st.spinner(f"{voice_key} - Sindhi Khalis Salam + Ginti..."):
         try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat, voice_key))
+            path = asyncio.run(gen(text_input, voice_name, rate_opt, voice_key))
             st.balloons()
-            st.success(f"✅ Ready! Ginti 2975 sahi bolega! {voice_key}")
+            if "Larka" in voice_key:
+                st.success(f"✅ Ready! LARKA Asad - Sindhi Khalis - السلام عليڪم + ٻه هزار نو سو پنجاهتر - Mardana!")
+            else:
+                st.success(f"✅ Ready! LARKI Uzma - Sindhi Khalis - السلام عليڪم + ٻه هزار نو سو پنجاهتر - Zanana!")
             st.audio(path)
-            st.caption(f"Fixed Text: {fix_ginti_khalis(text_input)}")
+            st.caption(f"Fixed: {fix_sindhi_khalis(text_input)}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key}", f, file_name=f"{voice_key.replace(' ','_')}_2975_KHALIS.mp3")
+                st.download_button(f"📥 Download {voice_key} Sindhi Khalis", f, file_name=f"{voice_key.replace(' ','_')}_SINDHI_KHALIS.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
