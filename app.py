@@ -1,9 +1,10 @@
-import streamlit as st, os, re, subprocess, asyncio
+import streamlit as st, os, re, subprocess, asyncio, time
 import edge_tts
+from gtts import gTTS
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95: Urdu + Sindhi + Hindi + English + Arabic + Baby - Larka + Larki - Khalis - No Cut!")
+st.success("V95 FIXED: No WSS Error - Khalis - No Cut!")
 
 VOICE_CATEGORIES = {
     "🇵🇰 URDU CLEAR": {
@@ -83,7 +84,7 @@ rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+1
 def clean(t):
     return t.strip()
 
-def split_no_cut(text, size=350):
+def split_no_cut(text, size=320):
     words = text.split()
     parts = []
     cur = ""
@@ -98,27 +99,69 @@ def split_no_cut(text, size=350):
         parts.append(cur)
     return parts if parts else [text]
 
-async def gen(text, voice, rate):
+def gtts_fallback(text, path, category):
+    try:
+        if "ARABIC" in category:
+            lang = 'ar'
+        elif "ENGLISH" in category:
+            lang = 'en'
+        else:
+            lang = 'ur'
+        tts = gTTS(text=text, lang=lang, slow=False)
+        tts.save(path)
+        return True
+    except Exception as e:
+        print(f"GTTS Fail: {e}")
+        return False
+
+async def gen_edge_with_retry(text, voice, rate, path):
+    # WSS Error Fix - 3 bar try karega
+    for attempt in range(3):
+        try:
+            await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
+            return True
+        except Exception as e:
+            print(f"Edge try {attempt+1} fail: {e}")
+            await asyncio.sleep(1.5 * (attempt+1))
+    return False
+
+async def gen(text, voice, rate, category):
     os.makedirs("voice", exist_ok=True)
     target = MAX_SEC * 11
     if len(text) < target and MAX_SEC>=60:
         while len(text) < target:
             text += " " + text[:600]
         text = text[:target]
-    parts = split_no_cut(text, 350)
+    
+    parts = split_no_cut(text, 320)
     files = []
     bar = st.progress(0)
+    status = st.empty()
+    
     for i, p in enumerate(parts):
         p = clean(p)
-        if not p: continue
+        if not p: 
+            continue
         path = f"voice/w_{i}.mp3"
-        try:
-            await edge_tts.Communicate(text=p, voice=voice, rate=rate).save(path)
-        except:
-            await edge_tts.Communicate(text=p, voice="hi-IN-SwaraNeural", rate=rate).save(path)
-        files.append(path)
+        status.text(f"Part {i+1}/{len(parts)} - {voice.split('-')[0]}...")
+        
+        ok = await gen_edge_with_retry(p, voice, rate, path)
+        
+        if not ok or not os.path.exists(path) or os.path.getsize(path) < 500:
+            status.text(f"Edge fail, GTTS backup se bana raha hun...")
+            gtts_fallback(p, path, category)
+        
+        if os.path.exists(path) and os.path.getsize(path) > 500:
+            files.append(path)
+        
         bar.progress((i+1)/len(parts))
-    final = f"voice/FINAL_{cat[:3]}.mp3"
+    
+    status.empty()
+    
+    if not files:
+        raise Exception("Voice nahi bani - Internet check karo, dobara try karo")
+    
+    final = f"voice/FINAL_{category[:3]}.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -132,12 +175,15 @@ async def gen(text, voice, rate):
 
 if st.button(f"🎙️ {cat} - {voice_name.split(' - ')[0]} - BANAO", type="primary", use_container_width=True):
     with st.spinner(f"{cat} - {voice_name} se {MAX_SEC} sec..."):
-        path = asyncio.run(gen(text_input, voice_name, rate_opt))
-        st.balloons()
-        st.success(f"✅ Ready! {cat} - {voice_name}")
-        st.audio(path)
-        with open(path, "rb") as f:
-            st.download_button(f"📥 Download {cat}", f, file_name=f"{cat[:5]}_{MAX_SEC}.mp3")
+        try:
+            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
+            st.balloons()
+            st.success(f"✅ Ready! {cat} - {voice_name} - Khalis No Cut!")
+            st.audio(path)
+            with open(path, "rb") as f:
+                st.download_button(f"📥 Download {cat}", f, file_name=f"{cat[:5]}_{MAX_SEC}.mp3")
+        except Exception as e:
+            st.error(f"Error: {e} - Dobara Banao button dabao, ho jayega!")
 
 st.divider()
-st.markdown("V95 FINAL - No Cut - Khalis Pure")
+st.markdown("**V95 FIXED:** WSS Error Fix + GTTS Backup + No Cut + Khalis")
