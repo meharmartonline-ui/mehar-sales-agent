@@ -4,7 +4,7 @@ from gtts import gTTS
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95: Urdu + Hindi + English + Arabic + Sindhi + Baby - 50+ Voices!")
+st.success("V95: Urdu + Sindhi Pure + Hindi + English + Arabic - 50+ Voices!")
 
 VOICE_CATEGORIES = {
     "🇵🇰 URDU CLEAR": {
@@ -13,48 +13,37 @@ VOICE_CATEGORIES = {
         "👩 Ayesha - Urdu": "ur-PK-AyeshaNeural",
         "👩 Uzma - Urdu Viral": "ur-PK-UzmaNeural",
     },
-    "🇵🇰 SINDHI CLEAR - سنڌي": {
-        "👩 Swara - Sindhi Best Clear - سنڌي بهترين": "hi-IN-SwaraNeural",
-        "👦 Asad - Sindhi Larka - سنڌي ڇوڪرو": "ur-PK-AsadNeural",
-        "👩 Uzma - Sindhi Clear - سنڌي صاف": "ur-PK-UzmaNeural",
-        "👩 Ayesha - Sindhi Larki - سنڌي ڇوڪري": "ur-PK-AyeshaNeural",
-        "👦 Shahbaz - Sindhi Mard": "ur-PK-AsadNeural",
+    "🇵🇰 SINDHI PURE - سنڌي خالص": {
+        "👩 Sindhi Pure - سنڌي خالص Google - BEST": "GTTS-SD",
+        "👩 Swara - Sindhi Clear": "hi-IN-SwaraNeural",
+        "👦 Asad - Sindhi Mard": "ur-PK-AsadNeural",
+        "👩 Uzma - Sindhi Aurat": "ur-PK-UzmaNeural",
     },
     "🇮🇳 HINDI/URDU MIX": {
         "👩 Swara - Hindi Best": "hi-IN-SwaraNeural",
         "👦 Madhur - Hindi Larka": "hi-IN-MadhurNeural",
-        "👩 Neerja - Hindi Larki": "en-IN-NeerjaNeural",
     },
     "🇺🇸 ENGLISH CLEAR": {
-        "👩 Jenny - US Clear Viral": "en-US-JennyNeural",
+        "👩 Jenny - US Clear": "en-US-JennyNeural",
         "👩 Aria - US Reels": "en-US-AriaNeural",
         "👦 Guy - US Larka": "en-US-GuyNeural",
-        "👦 Davis - US Deep Voice": "en-US-DavisNeural",
-        "👩 Neerja - Indian English Clear": "en-IN-NeerjaNeural",
-        "👦 Prabhat - Indian English Larka": "en-IN-PrabhatNeural",
-        "👩 Libby - UK English": "en-GB-LibbyNeural",
     },
     "🇸🇦 ARABIC - عربي": {
-        "👩 Salma - Arabic Egypt Clear - BEST": "ar-EG-SalmaNeural",
-        "👦 Shakir - Arabic Egypt Larka": "ar-EG-ShakirNeural",
-        "👩 Zariyah - Arabic Saudi Clear": "ar-SA-ZariyahNeural",
-        "👦 Hamed - Arabic Saudi Larka": "ar-SA-HamedNeural",
-        "👩 Amany - Arabic UAE": "ar-AE-FatimaNeural",
-        "👦 Hamdan - Arabic UAE Larka": "ar-AE-HamdanNeural",
+        "👩 Salma - Arabic BEST": "ar-EG-SalmaNeural",
+        "👦 Shakir - Arabic Larka": "ar-EG-ShakirNeural",
+        "👩 Zariyah - Arabic Saudi": "ar-SA-ZariyahNeural",
     },
     "👶 BABY / KIDS": {
-        "👧 Baby Ana - US Bachi": "en-US-AnaNeural",
-        "👧 Ava - US Bachi Multilingual": "en-US-AvaMultilingualNeural",
-        "👧 Baby Ayesha - Hindi Baby": "hi-IN-SwaraNeural",
+        "👧 Baby Ana": "en-US-AnaNeural",
+        "👧 Ava Multilingual": "en-US-AvaMultilingualNeural",
     },
     "🔥 VIRAL ALL": {
-        "👩 Swara - Urdu/Hindi/Sindhi Viral": "hi-IN-SwaraNeural",
+        "👩 Swara - Viral": "hi-IN-SwaraNeural",
         "👩 Jenny - English Viral": "en-US-JennyNeural",
-        "👩 Salma - Arabic Viral": "ar-EG-SalmaNeural",
     }
 }
 
-cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=0)
+cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=1)
 voices = VOICE_CATEGORIES[cat]
 voice_name = voices[st.selectbox(f"{cat} Voice:", list(voices.keys()), index=0)]
 
@@ -63,24 +52,29 @@ MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys())
 MAX_CHARS = MAX_SEC * 13
 
 TEXTS = {
-    "🇵🇰 URDU CLEAR": "Assalam-o-Alaikum! Mere pyare bhaiyon aur behno, Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
-    "🇵🇰 SINDHI CLEAR - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون، مهر مارٽ جو خالص ماکي 100 سيڪڙو خالص آهي! صرف 2975 ۾ مفت هوم ڊليوري سان!",
-    "🇮🇳 HINDI/URDU MIX": "Namaste! Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
-    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure and natural! Only 2975 with free delivery all over Pakistan!",
-    "🇸🇦 ARABIC - عربي": "السلام عليكم! عسل مهر مارت نقي 100 بالمئة! فقط 2975 مع توصيل مجاني في جميع أنحاء باكستان!",
-    "👶 BABY / KIDS": "Hello! I am baby! Mehar Mart honey is yummy yummy! So sweet!",
-    "🔥 VIRAL ALL": "Mehar Mart Pure Honey 100 percent khalis hai! Sirf 2975 me Free Delivery!"
+    "🇵🇰 URDU CLEAR": "Assalam-o-Alaikum! Mere pyare bhaiyon aur behno, Mehar Mart ka Pure Honey 100 percent khalis hai!",
+    "🇵🇰 SINDHI PURE - سنڌي خالص": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون، مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾ مفت هوم ڊليوري سان سڄي پاڪستان ۾!",
+    "🇮🇳 HINDI/URDU MIX": "Namaste! Mehar Mart ka Pure Honey 100 percent khalis hai!",
+    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure!",
+    "🇸🇦 ARABIC - عربي": "السلام عليكم! عسل مهر مارت نقي 100 بالمئة!",
+    "👶 BABY / KIDS": "Hello baby! Mehar Mart honey yummy!",
+    "🔥 VIRAL ALL": "Mehar Mart Pure Honey 100 percent khalis hai!",
 }
 
-default_text = TEXTS.get(cat, TEXTS["🇵🇰 URDU CLEAR"])
+default_text = TEXTS.get(cat, TEXTS["🇵🇰 SINDHI PURE - سنڌي خالص"])
 if MAX_SEC >= 120:
-    default_text = default_text * 40
+    default_text = (default_text + " ") * 20
 
-text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} ke liye:", value=default_text, height=220, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - Pure Sindhi likho:", value=default_text, height=220, max_chars=MAX_CHARS)
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
-rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
+rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="+0%")
 
-def clean(t): return re.sub(r'[^\w\s.,!?\-ء-يڪ-ۿ]', ' ', t).strip()
+def clean(t, category):
+    # SINDHI PURE KE LIYE KOI CUTTING NAHI - JAISE LIKHO WAISE RAHEGA
+    if "SINDHI" in category:
+        return t.strip()
+    # Baqi languages ke liye halka clean
+    return re.sub(r'[^\w\s.,!?\-ء-يآ-ی]', ' ', t).strip()
 
 async def gen_edge(text, voice, rate, path):
     for attempt in range(3):
@@ -91,51 +85,57 @@ async def gen_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-def gen_gtts_backup(text, path):
+def gen_gtts_pure(text, path, category):
     try:
-        if "SINDHI" in cat or "سنڌي" in text:
+        if "SINDHI" in category:
+            # PURE SINDHI - Google Sindhi
             tts = gTTS(text=text, lang='sd')
-        elif "ARABIC" in cat or "عربي" in text:
+        elif "ARABIC" in category:
             tts = gTTS(text=text, lang='ar')
-        elif "ENGLISH" in cat:
+        elif "ENGLISH" in category:
             tts = gTTS(text=text, lang='en')
         else:
             tts = gTTS(text=text, lang='ur')
         tts.save(path)
         return True
-    except:
+    except Exception as e:
+        print(f"gTTS error {e}")
         try:
-            tts = gTTS(text=text, lang='en')
+            tts = gTTS(text=text, lang='ur')
             tts.save(path)
             return True
         except:
             return False
 
-async def gen(text, voice, rate):
+async def gen(text, voice, rate, category):
     os.makedirs("voice", exist_ok=True)
-    target = MAX_SEC * 11
-    if len(text) < target and MAX_SEC>=60:
-        while len(text) < target:
-            text += " " + text[:600]
-        text = text[:target]
     parts = [text[i:i+350] for i in range(0, len(text), 350)]
     files = []
     bar = st.progress(0)
     status = st.empty()
+    
     for i, p in enumerate(parts):
-        p = clean(p)
+        p = clean(p, category)
         if not p: continue
         path = f"voice/w_{i}.mp3"
-        status.text(f"Part {i+1}/{len(parts)} - {cat}...")
-        success = await gen_edge(p, voice, rate, path)
-        if not success:
-            gen_gtts_backup(p, path)
+        status.text(f"Sindhi Pure Part {i+1}/{len(parts)}...")
+        
+        if voice == "GTTS-SD" or "SINDHI" in category:
+            # SINDHI KE LIYE DIRECT GOOGLE SINDHI - PURE!
+            gen_gtts_pure(p, path, category)
+        else:
+            success = await gen_edge(p, voice, rate, path)
+            if not success:
+                gen_gtts_pure(p, path, category)
+        
         if os.path.exists(path):
             files.append(path)
         bar.progress((i+1)/len(parts))
+    
     if not files:
         raise Exception("Voice nahi bani")
-    final = f"voice/FINAL_{cat[:3]}.mp3"
+    
+    final = f"voice/FINAL_SINDHI.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -148,29 +148,27 @@ async def gen(text, voice, rate):
     status.empty()
     return final
 
-if st.button(f"🎙️ {cat} - BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{cat} se bana raha hun..."):
+if st.button(f"🎙️ {cat} - PURE BANAO", type="primary", use_container_width=True):
+    with st.spinner(f"{cat} Pure bana raha hun..."):
         try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt))
+            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
             st.balloons()
-            st.success(f"✅ Ready! {cat} - {voice_name}")
+            st.success(f"✅ Pure Sindhi Ready! {cat}")
             st.audio(path)
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {cat}", f, file_name=f"V95_{cat[:3]}.mp3", use_container_width=True)
+                st.download_button(f"📥 Download Pure Sindhi", f, file_name=f"PURE_SINDHI_{MAX_SEC}.mp3", use_container_width=True)
         except Exception as e:
             st.error(f"Error: {e}")
-            backup_path = "voice/backup.mp3"
-            if gen_gtts_backup(text_input[:500], backup_path):
-                st.audio(backup_path)
-                st.success("✅ Backup Sindhi/Urdu voice ready!")
+            backup = "voice/backup.mp3"
+            if gen_gtts_pure(text_input[:500], backup, cat):
+                st.audio(backup)
 
 st.divider()
 st.markdown("""
-**V95 NEW UPDATE:**
-- 🇵🇰 **SINDHI CLEAR - سنڌي**: Asad, Uzma, Swara, Ayesha, Shahbaz
-- 🇵🇰 Urdu: Swara, Asad, Ayesha, Uzma  
-- 🇸🇦 Arabic: Salma, Shakir, Zariyah, Hamed
-- 🇺🇸 English: Jenny, Aria, Guy
-- 👶 Baby: Ana, Ava
-- Speed: -5% clear ke liye best!
+### 🇵🇰 SINDHI PURE FIX:
+- **Ab koi lafz cut nahi hoga - ٻ ڄ ڳ ڱ سڀ mehfooz!**
+- **Google Sindhi Pure voice - 100% Sindhi**
+- **Sample:** السلام عليڪم! منهنجا پيارا ڀائرو!
+
+**TIP:** Sindhi Pure ke liye pehli voice **GTTS-SD** select karo - Wo 100% Sindhi hai!
 """)
