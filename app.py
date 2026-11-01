@@ -3,7 +3,7 @@ import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: 1-100 Sindhi Ginti Full Fix - Search Based")
+st.success("V95 FINAL: Only Sindhi Khalis - No Urdu - 1-100 Fix")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -17,54 +17,6 @@ VOICE_CATEGORIES = {
         "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
         "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
         "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    },
-    "🇵🇰 URDU CLEAR - اردو": {
-        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
-        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    },
-    "🇮🇳 HINDI - हिंदी": {
-        "10 Sal Larka - Asad": "hi-IN-MadhurNeural",
-        "20 Sal Larka - Asad": "hi-IN-MadhurNeural",
-        "30 Sal Larka - Asad": "hi-IN-MadhurNeural",
-        "50 Sal Larka - Asad": "hi-IN-MadhurNeural",
-        "60 Sal Larka - Asad": "hi-IN-MadhurNeural",
-        "10 Sal Larki - Uzma": "hi-IN-SwaraNeural",
-        "20 Sal Larki - Uzma": "hi-IN-SwaraNeural",
-        "30 Sal Larki - Uzma": "hi-IN-SwaraNeural",
-        "50 Sal Larki - Uzma": "hi-IN-SwaraNeural",
-        "60 Sal Larki - Uzma": "hi-IN-SwaraNeural",
-    },
-    "🇸🇦 ARABIC - العربية": {
-        "10 Sal Larka - Asad": "ar-SA-HamedNeural",
-        "20 Sal Larka - Asad": "ar-SA-HamedNeural",
-        "30 Sal Larka - Asad": "ar-SA-HamedNeural",
-        "50 Sal Larka - Asad": "ar-SA-HamedNeural",
-        "60 Sal Larka - Asad": "ar-SA-HamedNeural",
-        "10 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
-        "20 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
-        "30 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
-        "50 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
-        "60 Sal Larki - Uzma": "ar-SA-ZariyahNeural",
-    },
-    "🇺🇸 ENGLISH - English": {
-        "10 Sal Larka - Asad": "en-US-GuyNeural",
-        "20 Sal Larka - Asad": "en-US-GuyNeural",
-        "30 Sal Larka - Asad": "en-US-GuyNeural",
-        "50 Sal Larka - Asad": "en-US-GuyNeural",
-        "60 Sal Larka - Asad": "en-US-GuyNeural",
-        "10 Sal Larki - Uzma": "en-US-JennyNeural",
-        "20 Sal Larki - Uzma": "en-US-JennyNeural",
-        "30 Sal Larki - Uzma": "en-US-JennyNeural",
-        "50 Sal Larki - Uzma": "en-US-JennyNeural",
-        "60 Sal Larki - Uzma": "en-US-JennyNeural",
     },
 }
 
@@ -84,18 +36,18 @@ TIME_OPTIONS = {
     "10 Minutes": 600,
 }
 
-cat = st.selectbox("📁 CATEGORY LANGUAGE:", list(VOICE_CATEGORIES.keys()), index=0)
+cat = "🇵🇰 SINDHI KHALIS - سنڌي"
 voices = VOICE_CATEGORIES[cat]
 voice_key = st.selectbox(f"{cat} - Age 10-60:", list(voices.keys()), index=1)
 voice_name = voices[voice_key]
-st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name}")
+st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis Sindhi")
 
 time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=0)
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-# SINDHI 1-100 FULL GINTI - Search Based
-SINDHI_1_100 = {
+# SINDHI 1-100 KHALIS - No Urdu!
+SINDHI_1_100_KHALIS = {
     0: "ٻڙي", 1: "هڪ", 2: "ٻه", 3: "ٽي", 4: "چار", 5: "پنج", 6: "ڇهه", 7: "ست", 8: "اٺ", 9: "نو", 10: "ڏهه",
     11: "يارنهن", 12: "ٻارهن", 13: "تيرنهن", 14: "چوڏهن", 15: "پندرهن", 16: "سورنهن", 17: "سترنهن", 18: "ارڙهن", 19: "اُڻويهہ", 20: "ويهہ",
     21: "ايڪويهہ", 22: "ٻاويھ", 23: "ٽاويھ", 24: "چوويھ", 25: "پنجويھ", 26: "ڇويھ", 27: "ستاويھ", 28: "اٺاويھ", 29: "اُڻٽيهہ", 30: "ٽيهہ",
@@ -108,99 +60,129 @@ SINDHI_1_100 = {
     91: "ايڪانوي", 92: "ٻانوي", 93: "ٽيانوي", 94: "چورانوي", 95: "پنجانوي", 96: "ڇانوي", 97: "ستانوي", 98: "اٺانوي", 99: "اُڻسئو", 100: "سئو",
 }
 
-def sindhi_number_to_words(n):
-    if n in SINDHI_1_100:
-        return SINDHI_1_100[n]
+def sindhi_number_to_words_khalis(n):
+    if n in SINDHI_1_100_KHALIS:
+        return SINDHI_1_100_KHALIS[n]
     if n < 1000:
-        # 101-999
         hundreds = n // 100
         rem = n % 100
         if rem == 0:
-            return f"{SINDHI_1_100[hundreds]} سئو" if hundreds > 1 else "سئو"
+            return f"{SINDHI_1_100_KHALIS[hundreds]} سئو" if hundreds > 1 else "سئو"
         else:
-            h_word = f"{SINDHI_1_100[hundreds]} سئو" if hundreds > 1 else "سئو"
-            return f"{h_word} {SINDHI_1_100[rem]}" if rem in SINDHI_1_100 else f"{h_word} {rem}"
+            h_word = f"{SINDHI_1_100_KHALIS[hundreds]} سئو" if hundreds > 1 else "سئو"
+            return f"{h_word} {SINDHI_1_100_KHALIS[rem]}" if rem in SINDHI_1_100_KHALIS else f"{h_word} {rem}"
     if n < 100000:
-        # thousands
         thousands = n // 1000
         rem = n % 1000
-        t_word = "هزار" if thousands == 1 else f"{sindhi_number_to_words(thousands)} هزار"
+        t_word = "هزار" if thousands == 1 else f"{sindhi_number_to_words_khalis(thousands)} هزار"
         if rem == 0:
             return t_word
         else:
-            return f"{t_word} {sindhi_number_to_words(rem)}"
+            return f"{t_word} {sindhi_number_to_words_khalis(rem)}"
     return str(n)
 
-TEXTS = {
-    "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-}
-
-text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, "السلام عليڪم! صرف ٻه هزار نو سو پنجاهتر روپين ۾! 1 2 3 4 5 10 20 30 50 100 روپيا!"), height=240, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label} - Khalis Sindhi:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري! 1 2 3 10 20 30 100!", height=240, max_chars=MAX_CHARS)
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-# FULL FIX - 1-100 Sindhi Ginti + 52 Harf + آهي + ڀينرون
-def clean_full_fix(text, category):
+# ONLY SINDHI KHALIS FIX - No Urdu Translation!
+def clean_sindhi_khalis_only(text):
     t = text.strip()
     t = t.replace("!", "۔")
     
-    if "SINDHI" in category:
-        # STEP 1 - Numbers 1-100 ko Sindhi me badlo - Pehle digits
-        # 2975 jaise bade numbers
-        def replace_numbers(match):
-            num = int(match.group())
-            if num <= 100:
-                return SINDHI_1_100.get(num, str(num))
-            elif num <= 5000:
-                return sindhi_number_to_words(num)
-            return match.group()
-        
-        # Digits 0-9 and numbers - regex
-        t = re.sub(r'\b\d+\b', replace_numbers, t)
-        
-        # Specific large number - 2975
-        t = t.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
-        
-        # STEP 2 - Direct word fix - آهي + ٻه + ڀينرون
-        t = t.replace("ڀينرون", "بہینرون")
-        t = t.replace("ڀائرو", "بھائرو")
-        t = t.replace("آهي", "آہی")
-        t = t.replace("آهي", "آہی")
-        t = t.replace("آهن", "آہن")
-        t = t.replace("ٻه", "ٻہ")
-        t = t.replace("ٻہ", "با")
-        t = t.replace("با", "دو")  # Final - ٻه -> دو - clear
-        
-        # 52 HARF MAP
-        mapping_52 = {
-            "ٻ": "ب", "ڄ": "ج", "ڃ": "نج", "ڳ": "گ", "ڱ": "نگ", "ڻ": "ن",
-            "ٽ": "ٹ", "ٺ": "ٹھ", "ٿ": "تھ", "ڌ": "دھ", "ڏ": "ڈ", "ڊ": "ڈ", "ڍ": "ڈھ",
-            "ڀ": "بھ", "ڦ": "پھ", "ڇ": "چھ", "ڪ": "ک", "ڙ": "ڑ", "ھ": "ہ",
-        }
-        for s, u in mapping_52.items():
-            t = t.replace(s, u)
-        
-        t = t.replace("عليڪم", "علیکم")
-        t = t.replace("سڄي", "سجی")
-        t = t.replace("ڊليوري", "ڈلیوری")
-        t = t.replace("فري", "فری")
-        t = t.replace("100%", "سئو سيڪڙو")
-        t = t.replace("%", " سيڪڙو")
+    # STEP 1 - Numbers 1-100 Khalis Sindhi - Search based
+    def replace_numbers_khalis(match):
+        num = int(match.group())
+        if num <= 100:
+            return SINDHI_1_100_KHALIS.get(num, str(num))
+        elif num <= 5000:
+            return sindhi_number_to_words_khalis(num)
+        return match.group()
     
-    elif "URDU" in category:
-        t = re.sub(r'\b2975\b', "دو ہزار نو سو پچھتر", t)
-        t = t.replace("100%", "ایک سو فیصد")
-    elif "HINDI" in category:
-        t = re.sub(r'\b2975\b', "दो हजार नौ सौ पचहत्तर", t)
-        t = t.replace("100%", "सौ प्रतिशत")
-    elif "ARABIC" in category:
-        t = re.sub(r'\b2975\b', "الفان وتسعمائة وخمسة وسبعون", t)
-        t = t.replace("100%", "مئة بالمئة")
-    elif "ENGLISH" in category:
-        t = re.sub(r'\b2975\b', "two thousand nine hundred seventy five", t)
-        t = t.replace("100%", "one hundred percent")
+    t = re.sub(r'\b\d+\b', replace_numbers_khalis, t)
+    
+    # STEP 2 - Direct word fix - ONLY SINDHI CHARS - No Urdu translation!
+    # آهي + ٻه + ڀينرون + سڄي + ڊليوري - Khalis Sindhi me hi fix!
+    
+    # آهي - آهي -> آہی nahi - آہی Urdu - Ab آہے Sindhi khalis - ھ -> ہ but Sindhi style
+    t = t.replace("آهي", "آہی")  # Temporary TTS ke liye - Display original
+    # Final TTS ke liye Sindhi khalis chars - No دو!
+    # ٻه - 2 - Sindhi me ٻه hi hai - Urdu دو nahi!
+    # Is liye ٻه -> بہ - بہ Sindhi me bhi hai - Urdu دو nahi!
+    # بہ = Sindhi implosive ka closest - دو = Urdu!
+    
+    # 52 HARF MAP - Only char mapping - No word translation to Urdu!
+    # Ye sirf Asad ko parhane ke liye - Display me original Sindhi!
+    mapping_khalis = {
+        # Khalis Sindhi -> TTS readable but still Sindhi sound
+        "ٻ": "ٻ",  # Keep - Try keep - Asad ke liye niche
+        "ڄ": "ڄ",  # Keep
+        "ڃ": "نج",
+        "ڳ": "گ",
+        "ڱ": "نگ",
+        "ڻ": "ن",
+        "ٽ": "ٽ",
+        "ٺ": "ٹھ",
+        "ٿ": "ٿ",
+        "ڌ": "ڌ",
+        "ڏ": "ڏ",
+        "ڊ": "ڊ",
+        "ڍ": "ڈھ",
+        "ڀ": "ڀ",
+        "ڦ": "ڦ",
+        "ڇ": "ڇ",
+        "ڪ": "ڪ",
+        "ڙ": "ڑ",
+        "ھ": "ہ",
+    }
+    # Actually for TTS - Asad ko ye chars nahi aate - Is liye TTS ke liye alag map
+    tts_mapping_khalis = {
+        "ٻ": "ب",   # ٻه -> بہ - Sindhi sound - Not Urdu دو!
+        "ڄ": "ج",   # سڄي -> سجی - But سجی Urdu lagta - So سڄي -> سجّی
+        "ڃ": "نج",
+        "ڳ": "گ",
+        "ڱ": "نگ",
+        "ڻ": "ن",
+        "ٽ": "ٹ",
+        "ٺ": "ٹھ",
+        "ٿ": "تھ",
+        "ڌ": "دھ",
+        "ڏ": "ڈ",
+        "ڊ": "ڈ",  # ڊليوري -> ڈلیوری but Sindhi me ڈلیوری
+        "ڍ": "ڈھ",
+        "ڀ": "بھ",  # ڀينرون -> بھینرون - Sindhi khalis
+        "ڦ": "پھ",
+        "ڇ": "چھ",
+        "ڪ": "ک",  # عليڪم -> علیکم - Salam fix
+        "ڙ": "ڑ",
+        "ھ": "ہ",
+    }
+    
+    # Apply TTS mapping - But keep words Sindhi!
+    for s_char, t_char in tts_mapping_khalis.items():
+        t = t.replace(s_char, t_char)
+    
+    # Word level - ONLY SINDHI - No دو!
+    # ٻه هزار - Pehle se - ٻه هزار -> بہ ہزار - Not دو ہزار!
+    t = t.replace("بہ ہزار", "ٻہ ہزار")  # Display khalis
+    t = t.replace("ٻہ ہزار", "بہ ہزار")  # TTS - بہ ہزار = Sindhi 2 hazar - Not Urdu دو!
+    # Final - بہ ہزار is Sindhi khalis sound - دو ہزار is Urdu!
+    
+    # سڄي - Sindhi khalis - سجی Urdu - So سڄي -> سجّی with shadda - More Sindhi!
+    t = t.replace("سڄي", "سجّی")  # سجّی - Tashdeed se Sindhi sound
+    t = t.replace("سجی", "سجّی")  # saji -> sajji
+    
+    # Other fixes
+    t = t.replace("عليڪم", "علیکم").replace("عليکم", "علیکم")
+    t = t.replace("ڊليوري", "ڈلیوری").replace("ڈليوري", "ڈلیوری")
+    t = t.replace("فري", "فری")
+    t = t.replace("آهي", "آہی")
+    t = t.replace("ڀينرون", "بھینرون")
+    t = t.replace("ڀائرو", "بھائرو")
+    t = t.replace("آہی", "آہے")  # آہے - Sindhi
+    t = t.replace("100%", "سئو سيڪڙو")
     
     return t
 
@@ -220,8 +202,7 @@ def split_no_cut(text, size=1000):
     return parts if parts else [text]
 
 async def gen_edge(text, voice, rate, path):
-    is_larka = "Larka" in voice or "Asad" in voice or "Madhur" in voice or "Hamed" in voice or "Guy" in voice
-    tries = 5 if is_larka else 3
+    tries = 5
     for _ in range(tries):
         try:
             if os.path.exists(path):
@@ -233,15 +214,15 @@ async def gen_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-async def gen(text, voice, rate, category):
+async def gen(text, voice, rate):
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = clean_full_fix(text, category)
+    text = clean_sindhi_khalis_only(text)
     parts = split_no_cut(text, 1000)
     files = []
     for i, p in enumerate(parts):
-        p = clean_full_fix(p, category)
+        p = clean_sindhi_khalis_only(p)
         if not p: continue
         path = f"voice/{voice.replace('-','_')}_{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
@@ -262,15 +243,15 @@ async def gen(text, voice, rate, category):
     return final
 
 if st.button(f"🎙️ {cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - {time_label} - 1-100 Fix..."):
+    with st.spinner(f"{voice_key} - {time_label} - Khalis Sindhi..."):
         try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
+            path = asyncio.run(gen(text_input, voice_name, rate_opt))
             st.balloons()
-            st.success(f"✅ Ready! 1-100 Ginti Clear - {cat}!")
+            st.success(f"✅ Ready! Only Sindhi Khalis - No Urdu!")
             st.audio(path)
-            st.caption(f"Fixed: {clean_full_fix(text_input, cat)}")
-            st.info(f"Sindhi 1-10: {', '.join([f'{k}={v}' for k,v in list(SINDHI_1_100.items())[:11]])}")
+            st.caption(f"Khalis Fixed: {clean_sindhi_khalis_only(text_input)}")
+            st.info(f"1-10 Khalis: {', '.join([f'{k}={v}' for k,v in list(SINDHI_1_100_KHALIS.items())[:11]])}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key} {time_label}", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_100FIX.mp3")
+                st.download_button(f"📥 Download {voice_key} Khalis Sindhi", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_KHALIS_SINDHI.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
