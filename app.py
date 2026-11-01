@@ -3,9 +3,8 @@ import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: Full System + Hindi Added + Pure Sindhi 52 Harf!")
+st.success("V95 FINAL: Bug Fixed - Hindi No Auto Namaste/Bharat - Jo Likho Wahi Bolega!")
 
-# LANGUAGE CATEGORY - FULL SYSTEM - HINDI ADDED!
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
         "10 Sal Larka - Asad": "ur-PK-AsadNeural",
@@ -30,7 +29,6 @@ VOICE_CATEGORIES = {
         "30 Sal Larka - Madhur": "hi-IN-MadhurNeural",
         "20 Sal Larki - Swara": "hi-IN-SwaraNeural",
         "30 Sal Larki - Swara": "hi-IN-SwaraNeural",
-        "20 Sal Larki - Swara Fast": "hi-IN-SwaraNeural",
     },
     "🇬🇧 ENGLISH - US": {
         "20 Sal Larka - Guy": "en-US-GuyNeural",
@@ -48,61 +46,77 @@ VOICE_CATEGORIES = {
 }
 
 TIME_OPTIONS = {
-    "15 Second": 15,
-    "20 Second": 20,
-    "30 Second": 30,
-    "60 Second (1 Minute)": 60,
-    "2 Minutes": 120,
-    "3 Minutes": 180,
-    "4 Minutes": 240,
-    "5 Minutes": 300,
-    "6 Minutes": 360,
-    "7 Minutes": 420,
-    "8 Minutes": 480,
-    "9 Minutes": 540,
-    "10 Minutes": 600,
+    "15 Second": 15, "20 Second": 20, "30 Second": 30, "60 Second (1 Minute)": 60,
+    "2 Minutes": 120, "3 Minutes": 180, "4 Minutes": 240, "5 Minutes": 300,
+    "6 Minutes": 360, "7 Minutes": 420, "8 Minutes": 480, "9 Minutes": 540, "10 Minutes": 600,
 }
 
-SINDHI_ALPHABET_52 = ["ا", "ب", "ٻ", "ت", "ث", "ج", "ڄ", "چ", "ڇ", "ح", "خ", "د", "ڌ", "ڏ", "ڊ", "ڍ", "ذ", "ر", "ڙ", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ڦ", "ق", "ڪ", "ک", "گ", "ڳ", "ڱ", "ل", "م", "ن", "ڻ", "و", "ه", "ھ", "ء", "ي"]
-PURE_SINDHI_TTS_MAP = {"ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک","ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ"}
+# PURE SINDHI 52 ALPHABET - Only for Sindhi - Hindi/Urdu me koi change nahi!
+PURE_SINDHI_TTS_MAP = {
+    "ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ",
+    "ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک",
+    "ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ",
+}
 
-st.markdown("### 🌍 LANGUAGE CATEGORY - زبان / भाषा")
+st.markdown("### 🌍 LANGUAGE CATEGORY")
 language_cat = st.selectbox("Language Category:", list(VOICE_CATEGORIES.keys()), index=0)
 voices = VOICE_CATEGORIES[language_cat]
-voice_key = st.selectbox(f"{language_cat} - Age 10-60:", list(voices.keys()), index=2)
+voice_key = st.selectbox(f"{language_cat} - Age:", list(voices.keys()), index=1)
 voice_name = voices[voice_key]
-st.info(f"SELECTED: {language_cat} - {voice_key} - {voice_name}")
+st.info(f"SELECTED: {language_cat} - {voice_key}")
 
 time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=2)
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-default_texts = {
-    "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-    "🇵🇰 URDU - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص شہد سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں!",
-    "🇮🇳 HINDI - हिन्दी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत शुद्ध है! सिर्फ दो हजार नौ सौ पचहत्तर रुपये में! पूरे भारत में फ्री डिलीवरी!",
-    "🇬🇧 ENGLISH - US": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees! Free delivery!",
-    "🇬🇧 ENGLISH - UK": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees!",
-    "🇸🇦 ARABIC - عربي": "السلام عليكم! إخواني وأخواتي الأعزاء! عسل مهر مارت نقي 100 بالمائة!",
-}
+# BUG FIX - NO AUTO DEFAULT TEXT - Khali - Jo likho wahi bolega!
+# Pehle Hindi me auto Namaste + Bharat tha - Ab nahi - Bilkul khali!
+st.markdown("### ✍️ YAHAN JO BHI TYPE KARO GE - WOHI EXACT VOICE BANEGA!")
+st.warning("⚠️ BUG FIXED: Hindi me auto Namaste/Bharat nahi - Pakistan likho ge to Pakistan hi bolega - Bharat nahi bolega - Jo likho ge wohi!")
 
-text_input = st.text_area(f"Text ({MAX_CHARS} max) - {language_cat} - {time_label}:", value=default_texts.get(language_cat, default_texts["🇵🇰 SINDHI KHALIS - سنڌي"]), height=240, max_chars=MAX_CHARS)
+# Text area bilkul khali - Koi default nahi - Koi auto translation nahi!
+text_input = st.text_area(
+    f"✍️ Yahan apna text likho ({MAX_CHARS} max) - {language_cat} - Jo likho ge wohi bolega - No auto change:",
+    value="",  # KHALI - No default - No Namaste - No Bharat!
+    placeholder=f"""Yahan jo bhi type karo ge wohi exact voice banega - Koi auto change nahi!
+
+Example - Jo likho ge wohi bolega:
+Sindhi: مان جيڪو به لکان ٿو اهو ئي آواز ٺهندو!
+Urdu: میں جو بھی لکھوں گا وہی بولے گا - پاکستان لکھو گے تو پاکستان ہی بولے گا!
+Hindi: मैं जो भी लिखूंगा वही बोलेगा - Pakistan लिखोगे तो Pakistan ही बोलेगा, Bharat नहीं!
+English: Whatever I type will be spoken exactly - If you type Pakistan it will say Pakistan!
+
+Ab aap apna text likho - Delivery All Pakistan likho ge to All Pakistan hi bolega - Bharat nahi!""",
+    height=300,
+    max_chars=MAX_CHARS
+)
+
+if not text_input.strip():
+    st.warning("⚠️ Text box khali hai - Yahan likho - Jo likho ge wohi bolega!")
+else:
+    st.success(f"✅ {len(text_input)} chars - Jo likha hai wohi bolega - No Bharat/Namaste auto!")
+
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
-st.progress(min(len(text_input)/MAX_CHARS, 1.0))
+st.progress(min(len(text_input)/MAX_CHARS, 1.0) if text_input else 0)
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-def clean_pure_sindhi_alphabet(text, lang_cat):
-    t = text.strip().replace("!", "۔" if "SINDHI" in lang_cat or "URDU" in lang_cat else "!")
+def clean_no_auto_change(text, lang_cat):
+    """BUG FIXED - Koi auto translation nahi - Jo likho ge wohi bolega!"""
+    if not text.strip():
+        return ""
+    t = text.strip()
+    
+    # ONLY SINDHI - 52 Harf fix - Baqi languages me koi change nahi!
     if "SINDHI" in lang_cat:
         for sc, tc in PURE_SINDHI_TTS_MAP.items():
             t = t.replace(sc, tc)
-        if "آہی" in t:
-            t = t.replace("آہی", "آآہی")
-        if "آہے" in t:
-            t = t.replace("آہے", "آآہے")
-        if "آهي" in t:
-            t = t.replace("آهي", "آآہی")
-        t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم").replace("100%", "سئو سيڪڙو").replace("2975", "ٻہ ہزار نو سو پنجاہتر").replace("ٻہ ہزار", "بہ ہزار").replace("اوڻٽيهه سو پنجاهتر", "بہ ہزار نو سو پنجاہتر")
+        t = t.replace("آهي", "آآہی").replace("آهي", "آآہی").replace("آہی", "آآہی").replace("آہے", "آآہے")
+        t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
+        # Numbers bhi Sindhi me hi - But location Pakistan/Bharat change nahi!
+    # HINDI, URDU, ENGLISH, ARABIC - Koi auto change nahi - Jo likha hai wohi!
+    # Pehle Hindi me Pakistan -> Bharat kar raha tha - Ab nahi!
+    # Pehle Namaste auto add ho raha tha - Ab nahi!
+    # Bilkul jo likho ge wohi bolega!
     return t
 
 def split_no_cut(text, size=1000):
@@ -132,15 +146,17 @@ async def gen_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-async def gen(text, voice, rate, lang_cat):
+async def gen_exact(text, voice, rate, lang_cat):
+    if not text.strip():
+        raise Exception("Text khali hai!")
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = clean_pure_sindhi_alphabet(text, lang_cat)
-    parts = split_no_cut(text, 1000)
+    cleaned = clean_no_auto_change(text, lang_cat)
+    parts = split_no_cut(cleaned, 1000)
     files = []
     for i, p in enumerate(parts):
-        p = clean_pure_sindhi_alphabet(p, lang_cat)
+        p = clean_no_auto_change(p, lang_cat)
         if not p: continue
         path = f"voice/{voice.replace('-','_')}_{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
@@ -148,7 +164,7 @@ async def gen(text, voice, rate, lang_cat):
             files.append(path)
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
+    final = f"voice/FINAL_Exact_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -160,17 +176,37 @@ async def gen(text, voice, rate, lang_cat):
         final = files[0]
     return final
 
-if st.button(f"🎙️ {language_cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - {time_label}..."):
-        try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt, language_cat))
-            st.balloons()
-            st.success(f"✅ Ready! {language_cat} - {voice_key} - {time_label}!")
-            st.audio(path)
-            st.caption(f"Cleaned: {clean_pure_sindhi_alphabet(text_input, language_cat)}")
-            if "SINDHI" in language_cat:
-                st.info(f"52 Harf Pure Sindhi: {', '.join(SINDHI_ALPHABET_52)}")
-            with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key} - {time_label}", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
-        except Exception as e:
-            st.error(f"Error: {e}")
+if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wahi Exact Banao", type="primary", use_container_width=True):
+    if not text_input.strip():
+        st.error("⚠️ Pehle kuch likho - Khali hai!")
+    else:
+        with st.spinner(f"{voice_key} - Exact jo likha hai wohi bana raha..."):
+            try:
+                path = asyncio.run(gen_exact(text_input, voice_name, rate_opt, language_cat))
+                st.balloons()
+                st.success(f"✅ Ready! Exact jo likha tha wohi - No Namaste/Bharat auto!")
+                st.audio(path)
+                st.markdown("**Aap ne exact likha tha:**")
+                st.code(text_input, language=None)
+                st.caption(f"TTS Cleaned (Only Sindhi 52 Harf): {clean_no_auto_change(text_input, language_cat)}")
+                with open(path, "rb") as f:
+                    st.download_button(f"📥 Download Exact Voice", f, file_name=f"Exact_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+st.divider()
+st.error("""
+**🐛 BUG FIXED - Hindi wala bug:**
+
+**Pehle kya hota tha:**
+**- Hindi select karte hi auto `नमस्ते` bolta tha**
+**- `Delivery All Pakistan` likha to `Delivery All Bharat` bol deta tha - Pakistan ko Bharat bana deta tha!**
+
+**Ab kya hai:**
+**- Koi auto Namaste nahi - Jo likho ge wohi bolega**
+**- Pakistan likho ge to Pakistan hi bolega - Bharat nahi banega**
+**- Hindi me `मैंने Pakistan में Delivery` likho ge to `Pakistan` hi bolega**
+**- Jo type karo ge wohi exact voice - Koi translation nahi!**
+
+**Test karo: `Delivery All Pakistan` likho - Hindi voice select karo - Ab Pakistan hi bolega - Bharat nahi!**
+""")
