@@ -51,10 +51,9 @@ voices = VOICE_CATEGORIES[cat]
 voice_name = voices[st.selectbox(f"{cat} Voice:", list(voices.keys()), index=0)]
 
 limit_options = {"⚡ 15 Sec":15, "🔥 30 Sec":30, "🎙️ 1 Min":60, "⏰ 2 Min":120, "🚀 10 Min FULL":600}
-MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys()), index=4)]
+MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys()), index=2)]
 MAX_CHARS = MAX_SEC * 13
 
-# TEXTS BY LANGUAGE
 TEXTS = {
     "🇵🇰 URDU CLEAR": "Assalam-o-Alaikum! Mere pyare bhaiyon aur behno, Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
     "🇮🇳 HINDI/URDU MIX": "Namaste! Mehar Mart ka Pure Honey 100 percent khalis hai! Sirf 2975 me!",
@@ -65,7 +64,6 @@ TEXTS = {
 }
 
 default_text = TEXTS.get(cat, TEXTS["🇵🇰 URDU CLEAR"])
-# 10 min full text for Urdu/Hindi/English/Arabic
 if MAX_SEC >= 120:
     default_text = default_text * 40
 
@@ -73,7 +71,8 @@ text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} ke liye:", value=defa
 st.metric(f"{len(text_input)} chars", f"{len(text_input)//13} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
-rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "0%", "+10%"], value="-5%")
+# FIXED - 0% ko +0% kar diya - Yehi Error tha!
+rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
 
 def clean(t): return re.sub(r'[^\w\s.,!?\-ء-ي]', ' ', t).strip()
 
@@ -92,10 +91,10 @@ async def gen(text, voice, rate):
         if not p: continue
         path = f"voice/w_{i}.mp3"
         try:
-            await edge_tts.Communicate(p, voice, rate=rate).save(path)
+            # FIXED: text=, voice=, rate= keywords se
+            await edge_tts.Communicate(text=p, voice=voice, rate=rate).save(path)
         except:
-            # Fallback
-            await edge_tts.Communicate(p, "hi-IN-SwaraNeural", rate=rate).save(path)
+            await edge_tts.Communicate(text=p, voice="hi-IN-SwaraNeural", rate=rate).save(path)
         files.append(path)
         bar.progress((i+1)/len(parts))
     final = f"voice/FINAL_{cat[:3]}.mp3"
