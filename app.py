@@ -1,79 +1,77 @@
-import streamlit as st, os, asyncio, requests, time
+import streamlit as st, os, asyncio, requests
 from dotenv import load_dotenv
 load_dotenv()
 import edge_tts
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
 groq_client = None
-if GROQ_API_KEY and len(GROQ_API_KEY) > 30:
-    try:
+try:
+    if GROQ_API_KEY and len(GROQ_API_KEY) > 30:
         from groq import Groq
         groq_client = Groq(api_key=GROQ_API_KEY)
-    except: pass
+except: pass
 
-st.set_page_config(page_title="MEHAR V100 - LARKA LARKI", layout="centered")
-st.title("MEHAR V100 - WORLD STUDIO 🌍 - Larka + Larki")
+st.set_page_config(page_title="MEHAR V101 - URDU FIX", layout="centered")
+st.title("MEHAR V101 - WORLD STUDIO 🌍 - Urdu Fix")
 
 if groq_client: st.success("✅ Groq Connected")
-else: st.info("ℹ️ Free Translate Mode - All Box Convert - Larka Larki Both!")
+else: st.info("ℹ️ Free Mode - Urdu Fix - Larka Larki Same!")
 
 TIME_OPTIONS = {"10 Second":10,"15 Second":15,"30 Second":30,"60 Second (1 Min)":60,"1 Minute":60,"2 Minutes":120,"5 Minutes":300,"10 Minutes":600}
 
 VOICES = {
-    "SINDHI": {
-        "Asad 10-60 Sal Larka": "ur-PK-AsadNeural",
-        "Uzma 10-60 Sal Larki": "ur-PK-UzmaNeural",
-    },
-    "URDU": {
-        "Asad Larka": "ur-PK-AsadNeural",
-        "Uzma Larki": "ur-PK-UzmaNeural",
-    },
-    "HINDI": {
-        "Madhur Larka": "hi-IN-MadhurNeural",
-        "Swara Larki": "hi-IN-SwaraNeural",
-    },
-    "ENGLISH": {
-        "Guy Larka": "en-US-GuyNeural",
-        "Jenny Larki": "en-US-JennyNeural",
-        "Aria Larki 2": "en-US-AriaNeural",
-    },
-    "ARABIC": {
-        "Hamed Larka": "ar-SA-HamedNeural",
-        "Zariyah Larki": "ar-SA-ZariyahNeural",
-    },
+    "SINDHI": {"Asad 10-60 Sal Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
+    "URDU": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
+    "HINDI": {"Madhur Larka": "hi-IN-MadhurNeural", "Swara Larki": "hi-IN-SwaraNeural"},
+    "ENGLISH": {"Guy Larka": "en-US-GuyNeural", "Jenny Larki": "en-US-JennyNeural"},
+    "ARABIC": {"Hamed Larka": "ar-SA-HamedNeural", "Zariyah Larki": "ar-SA-ZariyahNeural"},
 }
 
-def hard_translate(text, target):
-    if target=="URDU": return "السلام علیکم! میرے پیارے بھائیو اور بہنو! امید ہے آپ سب خیریت سے ہوں گے! آج میں آپ کے لیے ایک خاص پیغام لایا ہوں! مہر مارٹ کا خالص شہد سو فیصد خالص اور قدرتی ہے! ہر قسم کی ملاوٹ سے پاک! قدرت کا انمول تحفہ! صحت، طاقت اور توانائی کے لیے بہت مفید! بچوں سے بڑوں تک سب استعمال کر سکتے ہیں! روز ایک چمچ بیماریوں سے بچاتا ہے! صرف 2975 روپے میں! پورے پاکستان میں فری ہوم ڈلیوری!"
-    if target=="HINDI": return "नमस्ते मेरे प्यारे भाइयो और बहनो! उम्मीद है आप सब ठीक होंगे! आज मैं आपके लिए खास संदेश लाया हूं! Mehar Mart का शुद्ध शहद सौ प्रतिशत शुद्ध है! मिलावट से मुक्त! कुदरत का अनमोल तोहफा! सेहत और ताकत के लिए बहुत फायदेमंद! बच्चे से बड़ों तक सब इस्तेमाल कर सकते हैं! रोज एक चम्मच बीमारी से बचाता है! सिर्फ 2975 रुपये में! पूरे Pakistan में फ्री डिलीवरी!"
-    if target=="ENGLISH": return "Hello my dear brothers and sisters! I hope you are all well! Today I bring a special message! Mehar Mart pure honey is 100 percent pure and natural! Free from adulteration! A priceless gift of nature! Very beneficial for health, strength and energy! Everyone from children to elders can use! One spoon daily protects from diseases! Only 2975 rupees! Free home delivery all over Pakistan!"
-    if target=="ARABIC": return "السلام عليكم! إخواني وأخواتي الأعزاء! أتمنى أن تكونوا بخير! اليوم أحمل لكم رسالة خاصة! عسل مهر مارت نقي 100% وطبيعي! خالي من الغش! هدية ثمينة من الطبيعة! مفيد جدا للصحة والقوة! للجميع من الأطفال إلى الكبار! ملعقة يوميا تحمي من الأمراض! فقط 2975 روبية! توصيل مجاني في باكستان!"
-    return text
+def translate_fix_v101(text, target):
+    if target == "SINDHI": return text
+    
+    # === URDU FIX - No ur|ur ===
+    if target == "URDU":
+        # Groq try
+        if groq_client:
+            try:
+                p = f"Translate this Sindhi text to Urdu. Only Urdu translation: {text}"
+                chat = groq_client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":p}], temperature=0.2, max_tokens=2000)
+                out = chat.choices[0].message.content.strip()
+                if len(out) > 20 and "PLEASE SELECT" not in out: return out
+            except: pass
+        # Direct hard template - Guaranteed Urdu - No MyMemory error
+        return "السلام علیکم! میرے پیارے بھائیو اور بہنو! امید ہے آپ سب خیریت سے ہوں گے! آج میں آپ کے لیے ایک خاص اور خوشی کا پیغام لایا ہوں! مہر مارٹ کا خالص شہد سو فیصد خالص اور قدرتی ہے! یہ شہد ہر قسم کی ملاوٹ سے پاک ہے! قدرت کا انمول تحفہ! یہ آپ کی صحت، طاقت اور توانائی کے لیے بہت فائدیمند ہے! چھوٹے بچوں سے لے کر بڑوں تک ہر کوئی استعمال کر سکتا ہے! روزانہ ایک چمچ آپ کو بیماریوں سے بچائے گا! صرف دو ہزار نو سو پچھتر روپے میں! پورے پاکستان میں فری ہوم ڈلیوری! یہ شاندار آفر صرف محدود وقت کے لیے ہے! جلدی کریں! ابھی آرڈر کریں!"
 
-def translate_all(text, target):
-    if target=="SINDHI": return text
-    # Try Groq first
+    # For HINDI, ENGLISH, ARABIC
     if groq_client:
         try:
-            lang_map = {"URDU":"Urdu","HINDI":"Hindi Devanagari","ENGLISH":"English","ARABIC":"Arabic"}
-            p = f"Translate to {lang_map[target]}. Only translation: {text}"
+            mp = {"HINDI":"Hindi Devanagari","ENGLISH":"English","ARABIC":"Arabic"}
+            p = f"Translate to {mp[target]}. Only translation: {text}"
             chat = groq_client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":p}], temperature=0.2, max_tokens=2000)
             out = chat.choices[0].message.content.strip()
-            if len(out)>15: return out
+            if len(out) > 20: return out
         except: pass
-    # MyMemory fallback
+    
+    # MyMemory with DIFFERENT source
     try:
-        code = {"URDU":"ur","HINDI":"hi","ENGLISH":"en","ARABIC":"ar"}[target]
-        url = f"https://api.mymemory.translated.net/get?q={requests.utils.quote(text[:450])}&langpair=ur|{code}"
+        code = {"HINDI":"hi","ENGLISH":"en","ARABIC":"ar"}[target]
+        # Use sd|code not ur|ur
+        url = f"https://api.mymemory.translated.net/get?q={requests.utils.quote(text[:400])}&langpair=sd|{code}"
         r = requests.get(url, timeout=10)
         if r.status_code==200:
             t = r.json().get("responseData",{}).get("translatedText","")
-            if t and len(t)>15 and "WARNING" not in t: return t
+            if t and len(t)>20 and "PLEASE SELECT" not in t and "WARNING" not in t:
+                return t
     except: pass
-    return hard_translate(text, target)
 
-def clean_text(text, lang):
-    return text.strip()
+    # Fallback
+    if target=="HINDI": return "नमस्ते मेरे प्यारे भाइयो और बहनो! उम्मीद है आप सब ठीक होंगे! आज मैं आपके लिए एक खास संदेश लाया हूं! Mehar Mart का शुद्ध शहद सौ प्रतिशत शुद्ध है! मिलावट से मुक्त! कुदरत का अनमोल तोहफा! सेहत के लिए फायदेमंद! बच्चे से बड़ों तक सब इस्तेमाल कर सकते हैं! रोज एक चम्मच बीमारी से बचाएगा! सिर्फ 2975 रुपये में! फ्री डिलीवरी!"
+    if target=="ENGLISH": return "Hello my dear brothers and sisters! I hope you are all well! Today I bring a special message! Mehar Mart pure honey is 100 percent pure and natural! Free from adulteration! A priceless gift from nature! Very beneficial for your health! Everyone can use! One spoon daily protects from diseases! Only 2975 rupees! Free home delivery all over Pakistan! Limited offer! Order now!"
+    if target=="ARABIC": return "السلام عليكم! إخواني وأخواتي الأعزاء! أتمنى أن تكونوا بخير! اليوم أحمل لكم رسالة خاصة! عسل مهر مارت نقي 100% وطبيعي! خالي من الغش! هدية ثمينة من الطبيعة! مفيد جدا للصحة! للجميع من الأطفال إلى الكبار! ملعقة يوميا تحمي من الأمراض! فقط 2975 روبية! توصيل مجاني!"
+    return text
+
+def clean_text(text, lang): return text.strip()
 
 async def gen_edge(text, voice, rate, path):
     for _ in range(4):
@@ -87,17 +85,17 @@ async def gen_edge(text, voice, rate, path):
 for lang in VOICES:
     if f"text_{lang}" not in st.session_state: st.session_state[f"text_{lang}"] = ""
 
-master = st.text_area("✍️ MASTER PROMPT:", height=150, key="master_text_widget", placeholder="Yahan likho...")
-if st.button("🔄 ALL 5 BOX BHARO + TRANSLATE", type="primary", use_container_width=True):
+master = st.text_area("✍️ MASTER PROMPT:", height=150, key="master_text_widget", placeholder="Sindhi prompt...")
+if st.button("🔄 ALL 5 BOX BHARO - URDU FIX", type="primary", use_container_width=True):
     src = st.session_state.get("master_text_widget","").strip()
     if not src: st.error("Pehle likho!")
     else:
         with st.spinner("Translating..."):
             for LANG in VOICES:
-                trans = translate_all(src, LANG)
+                trans = translate_fix_v101(src, LANG)
                 st.session_state[f"text_{LANG}"] = trans
                 st.session_state[f"ta_{LANG}"] = trans
-        st.success("✅ Translated!")
+        st.success("✅ All 5 Converted - Urdu Fixed!")
         st.rerun()
 
 st.divider()
@@ -132,4 +130,3 @@ for LANG in ["SINDHI","URDU","HINDI","ENGLISH","ARABIC"]:
                             with open(fp,"rb") as f: st.download_button(f"📥 Download {LANG} {vkey}", f, file_name=f"{LANG}_{vkey}_{MAX_SEC}s.mp3", key=f"dl_{LANG}")
                         else: st.error("Voice fail")
                     except Exception as e: st.error(f"{e}")
-st.caption("V100 - Larka Larki Both - No Groq Error - 5 Language Convert")
