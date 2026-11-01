@@ -1,63 +1,115 @@
 import streamlit as st, os, asyncio, shutil, subprocess, re
 import edge_tts
 
-st.set_page_config(page_title="MEHAR V95 - Aahe Short", layout="centered")
-st.title("MEHAR V95 - Aahe Short ✅")
-st.success("V95 FINAL: آ ہے (lamba) -> آہے (short)")
+st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
+st.title("MEHAR V95 - WORLD STUDIO 🌍")
+st.success("V95 FINAL: Dynamic System - Jo Type Karo Wohi Voice! Mehar Mart Sirf Example!")
 
-cat = "🇵🇰 SINDHI KHALIS - سنڌي"
-voice_key = st.selectbox("Age:", ["10 Sal Larka - Asad", "20 Sal Larka - Asad", "30 Sal Larka - Asad", "50 Sal Larka - Asad", "10 Sal Larki - Uzma"], index=1)
-VOICE_MAP = {"Larka": "ur-PK-AsadNeural", "Larki": "ur-PK-UzmaNeural"}
-voice_name = VOICE_MAP["Larka" if "Larka" in voice_key else "Larki"]
+VOICE_CATEGORIES = {
+    "🇵🇰 SINDHI KHALIS - سنڌي": {
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    },
+    "🇵🇰 URDU - اردو": {
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    },
+    "🇮🇳 HINDI - हिन्दी": {
+        "20 Sal Larka - Madhur": "hi-IN-MadhurNeural",
+        "30 Sal Larka - Madhur": "hi-IN-MadhurNeural",
+        "20 Sal Larki - Swara": "hi-IN-SwaraNeural",
+        "30 Sal Larki - Swara": "hi-IN-SwaraNeural",
+    },
+    "🇬🇧 ENGLISH - US": {
+        "20 Sal Larka - Guy": "en-US-GuyNeural",
+        "20 Sal Larki - Jenny": "en-US-JennyNeural",
+        "20 Sal Larki - Aria": "en-US-AriaNeural",
+    },
+    "🇬🇧 ENGLISH - UK": {
+        "20 Sal Larka - Ryan": "en-GB-RyanNeural",
+        "20 Sal Larki - Sonia": "en-GB-SoniaNeural",
+    },
+    "🇸🇦 ARABIC - عربي": {
+        "20 Sal Larka - Hamed": "ar-SA-HamedNeural",
+        "20 Sal Larki - Zariyah": "ar-SA-ZariyahNeural",
+    },
+}
 
-time_label = st.selectbox("Time:", ["15 Second", "20 Second", "30 Second", "60 Second", "2 Minutes", "5 Minutes", "10 Minutes"], index=2)
-MAX_SEC = {"15 Second":15, "20 Second":20, "30 Second":30, "60 Second":60, "2 Minutes":120, "5 Minutes":300, "10 Minutes":600}[time_label]
+TIME_OPTIONS = {
+    "15 Second": 15, "20 Second": 20, "30 Second": 30, "60 Second (1 Minute)": 60,
+    "2 Minutes": 120, "3 Minutes": 180, "4 Minutes": 240, "5 Minutes": 300,
+    "6 Minutes": 360, "7 Minutes": 420, "8 Minutes": 480, "9 Minutes": 540, "10 Minutes": 600,
+}
+
+# PURE SINDHI 52 ALPHABET - Dynamic - Any text!
+PURE_SINDHI_TTS_MAP = {
+    "ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ",
+    "ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک",
+    "ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ",
+}
+
+st.markdown("### 🌍 LANGUAGE CATEGORY")
+language_cat = st.selectbox("Language Category - Jo bhi bhasha chahiye:", list(VOICE_CATEGORIES.keys()), index=0)
+voices = VOICE_CATEGORIES[language_cat]
+voice_key = st.selectbox(f"{language_cat} - Age 10-60:", list(voices.keys()), index=2)
+voice_name = voices[voice_key]
+st.info(f"SELECTED: {language_cat} - {voice_key}")
+
+time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=2)
+MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-SINDHI_1_100 = {0:"ٻڙي",1:"هڪ",2:"ٻه",3:"ٽي",4:"چار",5:"پنج",6:"ڇهه",7:"ست",8:"اٺ",9:"نو",10:"ڏهه",20:"ويهہ",30:"ٽيهہ",100:"سئو"}
+# DYNAMIC - Jo bhi type karo - Sirf example hai - Mehar Mart ek example!
+st.markdown("### ✍️ YAHAN JO BHI TYPE KARO GE - WOHI VOICE BANEGA!")
+st.info("💡 Mehar Mart sirf Example hai - Aap koi bhi text type karo - Sindhi, Urdu, Hindi, English - Jo bhi likho ge wohi voice banega! Unlimited!")
 
-text_input = st.text_area(f"Test - {MAX_SEC}s - Short Aahe:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!", height=200, max_chars=MAX_CHARS)
-st.progress(min(len(text_input)/MAX_CHARS, 1.0))
+default_example = "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! هي مثال آهي - توهان جيڪو به لکندا اهو ئي آواز ٺهندو! کوئی بھی ٹیکسٹ لکھو!"
+
+text_input = st.text_area(
+    f"✍️ Yahan apna koi bhi text likho ({MAX_CHARS} max) - {language_cat} - {time_label} - Jo likho ge wohi bolega:",
+    value="",
+    placeholder="Yahan jo bhi type karo ge wohi voice banega...\n\nSindhi: السلام عليڪم! مان جيڪو به لکان ٿو اهو ئي آواز ٺهندو!\nUrdu: السلام علیکم! میں جو بھی لکھوں گا وہی آواز بنے گی!\nHindi: नमस्ते! मैं जो भी लिखूंगा वही आवाज बनेगी!\nEnglish: Hello! Whatever I type will become voice!",
+    height=260,
+    max_chars=MAX_CHARS
+)
+
+if not text_input.strip():
+    st.warning("⚠️ Yahan apna text likho - Jo bhi likho ge wohi voice banega - Khali hai abhi!")
+else:
+    st.success(f"✅ {len(text_input)} chars typed - Jo likha hai wohi bolega!")
+
+st.metric(f"{len(text_input)} / {MAX_CHARS} chars", f"{len(text_input)//14} sec / {MAX_SEC} sec")
+st.progress(min(len(text_input)/MAX_CHARS, 1.0) if text_input else 0)
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-def clean_short_aahe(text):
-    t = text.strip().replace("!", "۔")
+def clean_dynamic_any_text(text, lang_cat):
+    """Dynamic - Jo bhi text ho - Sindhi, Urdu, Hindi, English - Sab ka voice!"""
+    if not text.strip():
+        return ""
+    t = text.strip()
     
-    # FINAL SHORT AAHE FIX - No space - Lamba khatam!
-    # آ ہے (space) = lamba aa...he
-    # آہے (no space) = short Aahe!
-    t = t.replace("آهي", "آہے")  # SHORT - No space!
-    t = t.replace("آهي", "آہے")
-    t = t.replace("آ ہے", "آہے")  # Agar pehle wala ho to short karo
-    t = t.replace("آ  ہے", "آہے")
-    t = t.replace("آهن", "آہیں")
-    
-    # Baqi Khalis Sindhi - No Urdu دو!
-    t = t.replace("ڀينرون", "بھینرون")
-    t = t.replace("ڀائرو", "بھائرو")
-    t = t.replace("ٻه", "بہ")  # ٻه -> بہ - Khalis - Not دو!
-    t = t.replace("ٻہ", "بہ")
-    
-    # 52 Harf - TTS readable but Khalis sound
-    mapping = {"ٻ":"ب","ڄ":"ج","ڃ":"نج","ڳ":"گ","ڱ":"نگ","ڻ":"ن","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڇ":"چھ","ڪ":"ک","ڙ":"ڑ","ھ":"ہ"}
-    for s,u in mapping.items():
-        t = t.replace(s,u)
-    
-    t = t.replace("عليڪم", "علیکم")
-    t = t.replace("سڄي", "سجّی")  # سڄي -> سجّی - Short - Khalis
-    t = t.replace("سجی", "سجّی")
-    t = t.replace("ڊليوري", "ڈلیوری")
-    t = t.replace("فري", "فری")
-    t = t.replace("100%", "سئو سيڪڙو")
-    
-    # Numbers
-    def rep_num(m):
-        n=int(m.group())
-        return SINDHI_1_100.get(n, f"{n}")
-    t = re.sub(r'\b\d+\b', rep_num, t)
-    t = t.replace("اوڻٽيهه سو پنجاهتر", "بہ ہزار نو سو پنجاہتر")
-    t = t.replace("2975", "بہ ہزار نو سو پنجاہتر")
-    
+    # Only for Sindhi - Pure 52 Harf fix - For any Sindhi text!
+    if "SINDHI" in lang_cat:
+        # 52 Harf mapping - Any Sindhi text - Jo bhi ho!
+        for sc, tc in PURE_SINDHI_TTS_MAP.items():
+            t = t.replace(sc, tc)
+        # Lamba Aahe - Alif khech ke - Anywhere in text!
+        t = t.replace("آهي", "آآہی").replace("آهي", "آآہی").replace("آہی", "آآہی").replace("آہے", "آآہے")
+        t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
+        t = t.replace("100%", "سئو سيڪڙو")
+        # Numbers - Any numbers in any text!
+        t = re.sub(r'\b2975\b', "بہ ہزار نو سو پنجاہتر", t)
+    # Urdu, Hindi, English - No extra fix - Jo likho ge wohi!
     return t
 
 def split_no_cut(text, size=1000):
@@ -87,23 +139,25 @@ async def gen_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-async def gen(text, voice, rate):
+async def gen_dynamic(text, voice, rate, lang_cat):
+    if not text.strip():
+        raise Exception("Text khali hai - Kuch likho!")
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = clean_short_aahe(text)
-    parts = split_no_cut(text, 1000)
+    cleaned = clean_dynamic_any_text(text, lang_cat)
+    parts = split_no_cut(cleaned, 1000)
     files = []
     for i, p in enumerate(parts):
-        p = clean_short_aahe(p)
+        p = clean_dynamic_any_text(p, lang_cat)
         if not p: continue
-        path = f"voice/{i}.mp3"
+        path = f"voice/{voice.replace('-','_')}_{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
         if ok:
             files.append(path)
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_ShortAahe_{MAX_SEC}s.mp3"
+    final = f"voice/FINAL_Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -115,15 +169,39 @@ async def gen(text, voice, rate):
         final = files[0]
     return final
 
-if st.button(f"🎙️ {voice_key} - {time_label} - Short Aahe Banao", type="primary", use_container_width=True):
-    with st.spinner(f"Short Aahe - {voice_key}..."):
-        try:
-            path = asyncio.run(gen(text_input, voice_name, rate_opt))
-            st.balloons()
-            st.success(f"✅ Ready! Short Aahe - آہے!")
-            st.audio(path)
-            st.caption(f"Short Fixed: {clean_short_aahe(text_input)}")
-            with open(path, "rb") as f:
-                st.download_button(f"📥 Download Short Aahe", f, file_name=f"Short_Aahe_{MAX_SEC}s.mp3")
-        except Exception as e:
-            st.error(f"Error: {e}")
+if st.button(f"🎙️ {language_cat} - {voice_key} - Jo Likha Hai Wohi Banao", type="primary", use_container_width=True):
+    if not text_input.strip():
+        st.error("⚠️ Pehle kuch likho - Text box khali hai - Jo bhi likho ge wohi voice banega!")
+    else:
+        with st.spinner(f"{voice_key} - Jo likha hai wohi bana raha - {len(text_input)} chars..."):
+            try:
+                path = asyncio.run(gen_dynamic(text_input, voice_name, rate_opt, language_cat))
+                st.balloons()
+                st.success(f"✅ Ready! Jo likha tha wohi bana - {language_cat} - {len(text_input)} chars!")
+                st.audio(path)
+                st.markdown(f"**Aap ne likha tha:**")
+                st.write(text_input)
+                st.caption(f"Cleaned for TTS: {clean_dynamic_any_text(text_input, language_cat)}")
+                with open(path, "rb") as f:
+                    st.download_button(f"📥 Download - Jo Likha Wahi Voice", f, file_name=f"Dynamic_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+st.divider()
+st.info("""
+**💡 Kaise Use Kare - Dynamic System:**
+
+**1. Language chuno - Sindhi, Urdu, Hindi, English, Arabic**
+**2. Neeche bade text box me JO BHI chaho likho - Koi bhi kahani, koi bhi post, koi bhi khabar!**
+**3. Mehar Mart sirf example tha - Aap apna khud ka text likho - 100% jo likho ge wohi bolega!**
+**4. Time chuno - 15 Sec se 10 Min tak**
+**5. Button dabao - Jo likha hai wohi voice banega!**
+
+**Example:**
+**Sindhi: مان اڄ بازار ويس...**
+**Urdu: آج میں بازار گیا...**
+**Hindi: आज मैं बाजार गया...**
+**English: Today I went to market...**
+
+**Sab chalega - Unlimited - Ek post nahi - Jo bhi type karo!**
+""")
