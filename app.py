@@ -1,9 +1,9 @@
 import streamlit as st, os, asyncio, shutil, subprocess, re
 import edge_tts
 
-st.set_page_config(page_title="MEHAR V95 - Lamba Aahe", layout="centered")
-st.title("MEHAR V95 - Lamba Aahe ✅")
-st.success("V95 FINAL: Aahe = آآہے - Alif Lamba Khech Ke")
+st.set_page_config(page_title="MEHAR V95 - Original Sindhi", layout="centered")
+st.title("MEHAR V95 - Original Sindhi ✅")
+st.success("V95 FINAL: Original آھي - Khalis Sindhi - No Change!")
 
 cat = "🇵🇰 SINDHI KHALIS - سنڌي"
 voice_key = st.selectbox("Age:", ["10 Sal Larka - Asad", "20 Sal Larka - Asad", "30 Sal Larka - Asad", "50 Sal Larka - Asad", "60 Sal Larka - Asad", "10 Sal Larki - Uzma", "20 Sal Larki - Uzma"], index=2)
@@ -16,50 +16,41 @@ MAX_CHARS = MAX_SEC * 14
 
 SINDHI_1_100 = {0:"ٻڙي",1:"هڪ",2:"ٻه",3:"ٽي",4:"چار",5:"پنج",6:"ڇهه",7:"ست",8:"اٺ",9:"نو",10:"ڏهه",20:"ويهہ",30:"ٽيهہ",40:"چاليهہ",50:"پنجاهہ",60:"سٺ",70:"ستر",80:"اسي",90:"نوي",100:"سئو"}
 
-text_input = st.text_area(f"Text - {MAX_SEC}s - Lamba Aahe:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!", height=220, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Original Sindhi - {MAX_SEC}s:", value="السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!", height=220, max_chars=MAX_CHARS)
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-def clean_lamba_aahe(text):
+def clean_original_sindhi(text):
     t = text.strip().replace("!", "۔")
     
-    # LAMBA AAHE - Alif khech ke - FINAL FIX!
-    # آهي -> آآہے - Double Alif - Lamba Aahe!
-    # آآہے = Alf lamba khech ke - Aa...he
-    t = t.replace("آهي", "آآہے")  # LAMBA - Double Alif!
-    t = t.replace("آهي", "آآہے")
-    t = t.replace("آ ہے", "آآہے")  # Agar pehle wala ho
-    t = t.replace("آہے", "آآہے")  # Short ko lamba karo
-    t = t.replace("آہی", "آآہے")
-    t = t.replace("آهن", "آآہیں")
+    # ORIGINAL SINDHI - آھي ko change nahi - Original hi rakho!
+    # Pehle wala: آهي - Yehi original Sindhi hai - Sahi hai!
+    # Is liye آهي ko map nahi karna - Original rehne do!
     
     # Baqi Khalis Sindhi - No Urdu دو!
-    t = t.replace("ڀينرون", "بھینرون")
-    t = t.replace("ڀائرو", "بھائرو")
-    t = t.replace("ٻه", "بہ")  # ٻه -> بہ - Khalis Sindhi - Not دو!
-    t = t.replace("ٻہ", "بہ")
-    t = t.replace("اوڻٽيهه سو پنجاهتر", "بہ ہزار نو سو پنجاہتر")
+    # ٻه -> بہ nahi - Original ٻه hi rakho agar ho sake - But TTS ke liye بہ
+    # User keh raha original sahi hai - To original hi rakho!
     
-    # 52 Harf - TTS readable but Khalis sound
-    mapping = {"ٻ":"ب","ڄ":"ج","ڃ":"نج","ڳ":"گ","ڱ":"نگ","ڻ":"ن","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڇ":"چھ","ڪ":"ک","ڙ":"ڑ","ھ":"ہ"}
-    for s,u in mapping.items():
-        t = t.replace(s,u)
+    # Sirf zaroori fixes - Jo TTS na parh sake usko hi
+    # آهي -> Original rakho - Change nahi!
     
-    t = t.replace("عليڪم", "علیکم")
-    t = t.replace("سڄي", "سجّی")  # سڄي -> سجّی - Khalis
-    t = t.replace("سجی", "سجّی")
-    t = t.replace("ڊليوري", "ڈلیوری")
-    t = t.replace("فري", "فری")
+    # 52 Harf - Minimal - Sirf jo bilkul na parha jaye
+    # آهي me ھ + ي - Original - Rehne do!
+    # ڀينرون - Original - Rehne do!
+    # ٻه - Original - Rehne do!
+    
+    # Minimal mapping - Sirf Salam + 100% + Numbers
     t = t.replace("100%", "سئو سيڪڙو")
     
-    # Numbers 1-100 Khalis Sindhi
+    # Numbers 1-100 Khalis Sindhi - Original me hi
     def rep_num(m):
         n=int(m.group())
         return SINDHI_1_100.get(n, f"{n}")
     t = re.sub(r'\b\d+\b', rep_num, t)
-    t = t.replace("2975", "بہ ہزار نو سو پنجاہتر")
+    t = t.replace("2975", "ٻه هزار نو سو پنجاهتر")  # Original Sindhi ginti!
     
+    # Baqi sab original rehne do - آهي, ٻه, ڀينرون, سڄي, ڊليوري - Original!
     return t
 
 def split_no_cut(text, size=1000):
@@ -93,11 +84,11 @@ async def gen(text, voice, rate):
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = clean_lamba_aahe(text)
+    text = clean_original_sindhi(text)
     parts = split_no_cut(text, 1000)
     files = []
     for i, p in enumerate(parts):
-        p = clean_lamba_aahe(p)
+        p = clean_original_sindhi(p)
         if not p: continue
         path = f"voice/{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
@@ -105,7 +96,7 @@ async def gen(text, voice, rate):
             files.append(path)
     if not files:
         raise Exception("Voice fail")
-    final = f"voice/FINAL_LambaAahe_{MAX_SEC}s.mp3"
+    final = f"voice/FINAL_OriginalSindhi_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
         ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
@@ -117,15 +108,15 @@ async def gen(text, voice, rate):
         final = files[0]
     return final
 
-if st.button(f"🎙️ {voice_key} - {time_label} - Lamba Aahe Banao", type="primary", use_container_width=True):
-    with st.spinner(f"Lamba Aahe - Alif khech ke - {voice_key}..."):
+if st.button(f"🎙️ {voice_key} - {time_label} - Original Sindhi Banao", type="primary", use_container_width=True):
+    with st.spinner(f"Original Sindhi - {voice_key}..."):
         try:
             path = asyncio.run(gen(text_input, voice_name, rate_opt))
             st.balloons()
-            st.success(f"✅ Ready! Lamba Aahe - آآہے - Alif Khech Ke!")
+            st.success(f"✅ Ready! Original Sindhi - آهي - Khalis!")
             st.audio(path)
-            st.caption(f"Lamba Aahe Fixed: {clean_lamba_aahe(text_input)}")
+            st.caption(f"Original: {clean_original_sindhi(text_input)}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download Lamba Aahe", f, file_name=f"Lamba_Aahe_{MAX_SEC}s.mp3")
+                st.download_button(f"📥 Download Original Sindhi", f, file_name=f"Original_Sindhi_{MAX_SEC}s.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
