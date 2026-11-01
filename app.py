@@ -3,7 +3,7 @@ import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: 5 Languages Clear Uchar + Ginti Fix")
+st.success("V95 FINAL: 52 Sindhi Harf Fix - سڄي پاڪستان Clear")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -96,47 +96,75 @@ MAX_CHARS = MAX_SEC * 14
 
 TEXTS = {
     "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-    "🇵🇰 URDU CLEAR - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں! سارے پاکستان میں فری ڈلیوری!",
-    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है! सिर्फ दो हजार नौ सौ पचहत्तर रुपये में! पूरे भारत में फ्री डिलीवरी!",
-    "🇸🇦 ARABIC - العربية": "السلام عليكم! اخواني واخواتي الاعزاء! عسل مهر مارت نقي مئة بالمئة! فقط الفان وتسعمائة وخمسة وسبعون روبية! توصيل مجاني في جميع انحاء باكستان!",
-    "🇺🇸 ENGLISH - English": "Assalamu Alaikum! My dear brothers and sisters! Mehar Mart pure honey is one hundred percent pure! Only two thousand nine hundred seventy five rupees! Free delivery all over Pakistan!",
 }
 
-text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي"]), height=220, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, "السلام عليڪم! سڄي پاڪستان ۾ فري ڊليوري!"), height=220, max_chars=MAX_CHARS)
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-# SAB LANGUAGE KA UCHAR + GINTI CLEAR FIX!
-def clean_all_languages(text, category):
+# FULL 52 SINDHI HARF FIX - Search ke hisab se!
+def clean_sindhi_52(text, category):
     t = text.strip()
-    # Common fix - ! se rukta hai
-    t = t.replace("!", "۔" if "SINDHI" in category or "URDU" in category else "।" if "HINDI" in category else "." if "ARABIC" in category else ".")
-    t = t.replace("!", ".")
+    t = t.replace("!", "۔")
     
     if "SINDHI" in category:
+        # GINTI FIX
         t = t.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
         t = t.replace("2975", "ٻه هزار نو سو پنجاهتر")
-        t = t.replace("100%", "هڪ سئو سيڪڙو").replace("100 فیصد", "هڪ سئو سيڪڙو")
+        
+        # FULL 52 HARF MAPPING - Sindhi -> Urdu jo Asad parh sake
+        # 52 letters list se: پ,ڦ,ب,ڀ,ت,ٿ,ڇ,د,ڌ,ٽ,ٺ,ڊ,ڍ,ڪ,ک,گ,ق,ٻ,ڏ,ڄ,ڳ,چ,ج...
+        mapping = {
+            "ٻ": "ب",   # implosive b -> b
+            "ڄ": "ج",   # سڄي -> سجي
+            "ڃ": "نج",  # nj sound
+            "ڄ": "ج",
+            "ڳ": "گ",   # g with dot
+            "ڱ": "نگ",  # ng sound
+            "ڻ": "ن",   # retroflex n
+            "ٽ": "ٹ",   # retroflex t
+            "ٺ": "ٹھ",
+            "ٿ": "تھ",
+            "ڌ": "دھ",
+            "ڏ": "ڈ",   # ڏ
+            "ڊ": "ڈ",   # ڊ - سڄي پاڪستان ۾ فري ڊليوري ka masla
+            "ڍ": "ڈھ",
+            "ڀ": "بھ",
+            "ڦ": "پھ",
+            "ڇ": "چھ",
+            "ڪ": "ک",   # عليڪم -> علیکم - Salam fix
+            "ڙ": "ڑ",   # keep - Urdu me hai
+            "ڳ": "گ",
+            "ڱ": "نگ",
+        }
+        for sindhi_char, urdu_char in mapping.items():
+            t = t.replace(sindhi_char, urdu_char)
+        
+        # Special phrases
+        t = t.replace("عليڪم", "علیکم").replace("عليکم", "علیکم")
+        t = t.replace("سجي پاڪستان", "سڄي پاڪستان")  # display wapas - lekin TTS ke liye niche
+        # Final TTS - Asad ke liye easy - سڄي -> سجی
+        t = t.replace("سڄي", "سجی").replace("سڃي", "سجی")
+        t = t.replace("ڊليوري", "ڈلیوری").replace("ڈليوري", "ڈلیوری")
+        t = t.replace("فري", "فری")
+        
+        t = t.replace("100%", "سئو سيڪڙو")
         t = t.replace("%", " سيڪڙو")
+    
     elif "URDU" in category:
         t = t.replace("2975", "دو ہزار نو سو پچھتر")
-        t = t.replace("اوڻٽيهه سو پنجاهتر", "دو ہزار نو سو پچھتر")
         t = t.replace("100%", "ایک سو فیصد")
-        t = t.replace("%", " فیصد")
     elif "HINDI" in category:
         t = t.replace("2975", "दो हजार नौ सौ पचहत्तर")
         t = t.replace("100%", "सौ प्रतिशत")
-        t = t.replace("%", " प्रतिशत")
     elif "ARABIC" in category:
         t = t.replace("2975", "الفان وتسعمائة وخمسة وسبعون")
         t = t.replace("100%", "مئة بالمئة")
-        t = t.replace("%", " بالمئة")
     elif "ENGLISH" in category:
         t = t.replace("2975", "two thousand nine hundred seventy five")
         t = t.replace("100%", "one hundred percent")
-        t = t.replace("%", " percent")
     
     return t
 
@@ -173,11 +201,11 @@ async def gen(text, voice, rate, category):
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    text = clean_all_languages(text, category)
+    text = clean_sindhi_52(text, category)
     parts = split_no_cut(text, 1000)
     files = []
     for i, p in enumerate(parts):
-        p = clean_all_languages(p, category)
+        p = clean_sindhi_52(p, category)
         if not p: continue
         path = f"voice/{voice.replace('-','_')}_{i}.mp3"
         ok = await gen_edge(p, voice, rate, path)
@@ -198,14 +226,14 @@ async def gen(text, voice, rate, category):
     return final
 
 if st.button(f"🎙️ {cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - {time_label} - Clear Uchar..."):
+    with st.spinner(f"{voice_key} - {time_label}..."):
         try:
             path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
             st.balloons()
-            st.success(f"✅ Ready! {cat} - {voice_key} - {time_label} - Uchar + Ginti Clear!")
+            st.success(f"✅ Ready! 52 Harf Fix - {cat} - سڄي Clear!")
             st.audio(path)
-            st.caption(f"Fixed: {clean_all_languages(text_input, cat)}")
+            st.caption(f"Fixed 52 Harf: {clean_sindhi_52(text_input, cat)}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key} {time_label} Clear", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_CLEAR.mp3")
+                st.download_button(f"📥 Download {voice_key} {time_label}", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_52FIX.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
