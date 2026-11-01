@@ -1,9 +1,9 @@
-import streamlit as st, os, asyncio, shutil, subprocess
+import streamlit as st, os, asyncio, shutil, subprocess, re
 import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: آهي + ڀينرون Fix")
+st.success("V95 FINAL: 1-100 Sindhi Ginti Full Fix - Search Based")
 
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
@@ -94,77 +94,112 @@ time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), in
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
+# SINDHI 1-100 FULL GINTI - Search Based
+SINDHI_1_100 = {
+    0: "ٻڙي", 1: "هڪ", 2: "ٻه", 3: "ٽي", 4: "چار", 5: "پنج", 6: "ڇهه", 7: "ست", 8: "اٺ", 9: "نو", 10: "ڏهه",
+    11: "يارنهن", 12: "ٻارهن", 13: "تيرنهن", 14: "چوڏهن", 15: "پندرهن", 16: "سورنهن", 17: "سترنهن", 18: "ارڙهن", 19: "اُڻويهہ", 20: "ويهہ",
+    21: "ايڪويهہ", 22: "ٻاويھ", 23: "ٽاويھ", 24: "چوويھ", 25: "پنجويھ", 26: "ڇويھ", 27: "ستاويھ", 28: "اٺاويھ", 29: "اُڻٽيهہ", 30: "ٽيهہ",
+    31: "ايڪٽيهہ", 32: "ٻٽيهہ", 33: "ٽيٽيهہ", 34: "چوٽيهہ", 35: "پنجٽيهہ", 36: "ڇٽيهہ", 37: "ستٽيهہ", 38: "اٺٽيهہ", 39: "اُڻتاليهہ", 40: "چاليهہ",
+    41: "ايڪتاليهہ", 42: "ٻتاليهہ", 43: "ٽيتاليهہ", 44: "چواليهہ", 45: "پنجتاليهہ", 46: "ڇتاليهہ", 47: "ستتاليهہ", 48: "اٺتاليهہ", 49: "اُڻپنجاهہ", 50: "پنجاهہ",
+    51: "ايڪپنجاهہ", 52: "ٻپنجاهہ", 53: "ٽيپنجاهہ", 54: "چوپنجاهہ", 55: "پنجپنجاهہ", 56: "ڇپنجاهہ", 57: "ستپنجاهہ", 58: "اٺپنجاهہ", 59: "اُڻسٺ", 60: "سٺ",
+    61: "ايڪسٺ", 62: "ٻهٺ", 63: "ٽيسٺ", 64: "چوسٺ", 65: "پنجسٺ", 66: "ڇهسٺ", 67: "ستسٺ", 68: "اٺسٺ", 69: "اُڻهتر", 70: "ستر",
+    71: "ايڪهتر", 72: "ٻهتر", 73: "ٽيهتر", 74: "چوهتر", 75: "پنجتر", 76: "ڇهتر", 77: "ستهتر", 78: "اٺتر", 79: "اُڻاسي", 80: "اسي",
+    81: "ايڪاسي", 82: "ٻاسي", 83: "ٽياسي", 84: "چوراسي", 85: "پنجاسي", 86: "ڇياسي", 87: "ستاسي", 88: "اٺاسي", 89: "اُڻانوي", 90: "نوي",
+    91: "ايڪانوي", 92: "ٻانوي", 93: "ٽيانوي", 94: "چورانوي", 95: "پنجانوي", 96: "ڇانوي", 97: "ستانوي", 98: "اٺانوي", 99: "اُڻسئو", 100: "سئو",
+}
+
+def sindhi_number_to_words(n):
+    if n in SINDHI_1_100:
+        return SINDHI_1_100[n]
+    if n < 1000:
+        # 101-999
+        hundreds = n // 100
+        rem = n % 100
+        if rem == 0:
+            return f"{SINDHI_1_100[hundreds]} سئو" if hundreds > 1 else "سئو"
+        else:
+            h_word = f"{SINDHI_1_100[hundreds]} سئو" if hundreds > 1 else "سئو"
+            return f"{h_word} {SINDHI_1_100[rem]}" if rem in SINDHI_1_100 else f"{h_word} {rem}"
+    if n < 100000:
+        # thousands
+        thousands = n // 1000
+        rem = n % 1000
+        t_word = "هزار" if thousands == 1 else f"{sindhi_number_to_words(thousands)} هزار"
+        if rem == 0:
+            return t_word
+        else:
+            return f"{t_word} {sindhi_number_to_words(rem)}"
+    return str(n)
+
 TEXTS = {
     "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
 }
 
-text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي!"), height=220, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Text ({MAX_CHARS} max) - {cat} - {time_label}:", value=TEXTS.get(cat, "السلام عليڪم! صرف ٻه هزار نو سو پنجاهتر روپين ۾! 1 2 3 4 5 10 20 30 50 100 روپيا!"), height=240, max_chars=MAX_CHARS)
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
-# FULL FIX - آهي + ڀينرون + سڄي + ڊليوري + 52 Harf
+# FULL FIX - 1-100 Sindhi Ginti + 52 Harf + آهي + ڀينرون
 def clean_full_fix(text, category):
     t = text.strip()
     t = t.replace("!", "۔")
     
     if "SINDHI" in category:
-        # GINTI
+        # STEP 1 - Numbers 1-100 ko Sindhi me badlo - Pehle digits
+        # 2975 jaise bade numbers
+        def replace_numbers(match):
+            num = int(match.group())
+            if num <= 100:
+                return SINDHI_1_100.get(num, str(num))
+            elif num <= 5000:
+                return sindhi_number_to_words(num)
+            return match.group()
+        
+        # Digits 0-9 and numbers - regex
+        t = re.sub(r'\b\d+\b', replace_numbers, t)
+        
+        # Specific large number - 2975
         t = t.replace("اوڻٽيهه سو پنجاهتر", "ٻه هزار نو سو پنجاهتر")
-        t = t.replace("2975", "ٻه هزار نو سو پنجاهتر")
         
-        # BUG 1 + 2 - آهي + ڀينرون - Direct word fix - Sab se pehle!
-        t = t.replace("ڀينرون", "بھینرون")  # ڀ -> بھ - Asad clear bolega
+        # STEP 2 - Direct word fix - آهي + ٻه + ڀينرون
+        t = t.replace("ڀينرون", "بہینرون")
         t = t.replace("ڀائرو", "بھائرو")
-        t = t.replace("آهي", "آہے")  # آهي -> آہے - Asad clear
+        t = t.replace("آهي", "آہی")
+        t = t.replace("آهي", "آہی")
         t = t.replace("آهن", "آہن")
-        t = t.replace("آهن", "آہن")
+        t = t.replace("ٻه", "ٻہ")
+        t = t.replace("ٻہ", "با")
+        t = t.replace("با", "دو")  # Final - ٻه -> دو - clear
         
-        # 52 HARF MAP - Full alphabet
+        # 52 HARF MAP
         mapping_52 = {
-            "ٻ": "ب",
-            "ڄ": "ج",  # سڄي
-            "ڃ": "نج",
-            "ڳ": "گ",
-            "ڱ": "نگ",
-            "ڻ": "ن",
-            "ٽ": "ٹ",
-            "ٺ": "ٹھ",
-            "ٿ": "تھ",
-            "ڌ": "دھ",
-            "ڏ": "ڈ",
-            "ڊ": "ڈ",  # ڊليوري
-            "ڍ": "ڈھ",
-            "ڀ": "بھ",  # ڀينرون
-            "ڦ": "پھ",
-            "ڇ": "چھ",
-            "ڪ": "ک",  # عليڪم
-            "ڙ": "ڑ",
-            "ھ": "ہ",  # ھ vs ہ - آهي me ھ
+            "ٻ": "ب", "ڄ": "ج", "ڃ": "نج", "ڳ": "گ", "ڱ": "نگ", "ڻ": "ن",
+            "ٽ": "ٹ", "ٺ": "ٹھ", "ٿ": "تھ", "ڌ": "دھ", "ڏ": "ڈ", "ڊ": "ڈ", "ڍ": "ڈھ",
+            "ڀ": "بھ", "ڦ": "پھ", "ڇ": "چھ", "ڪ": "ک", "ڙ": "ڑ", "ھ": "ہ",
         }
         for s, u in mapping_52.items():
             t = t.replace(s, u)
         
-        # Salam + سڄي + ڊليوري fix
-        t = t.replace("عليڪم", "علیکم").replace("عليکم", "علیکم")
-        t = t.replace("سڄي", "سجی").replace("سڃي", "سجی")
-        t = t.replace("ڊليوري", "ڈلیوری").replace("ڈليوري", "ڈلیوری")
+        t = t.replace("عليڪم", "علیکم")
+        t = t.replace("سڄي", "سجی")
+        t = t.replace("ڊليوري", "ڈلیوری")
         t = t.replace("فري", "فری")
-        
         t = t.replace("100%", "سئو سيڪڙو")
+        t = t.replace("%", " سيڪڙو")
     
     elif "URDU" in category:
-        t = t.replace("2975", "دو ہزار نو سو پچھتر")
+        t = re.sub(r'\b2975\b', "دو ہزار نو سو پچھتر", t)
         t = t.replace("100%", "ایک سو فیصد")
     elif "HINDI" in category:
-        t = t.replace("2975", "दो हजार नौ सौ पचहत्तर")
+        t = re.sub(r'\b2975\b', "दो हजार नौ सौ पचहत्तर", t)
         t = t.replace("100%", "सौ प्रतिशत")
     elif "ARABIC" in category:
-        t = t.replace("2975", "الفان وتسعمائة وخمسة وسبعون")
+        t = re.sub(r'\b2975\b', "الفان وتسعمائة وخمسة وسبعون", t)
         t = t.replace("100%", "مئة بالمئة")
     elif "ENGLISH" in category:
-        t = t.replace("2975", "two thousand nine hundred seventy five")
+        t = re.sub(r'\b2975\b', "two thousand nine hundred seventy five", t)
         t = t.replace("100%", "one hundred percent")
     
     return t
@@ -227,14 +262,15 @@ async def gen(text, voice, rate, category):
     return final
 
 if st.button(f"🎙️ {cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - {time_label} - آهي ڀينرون Fix..."):
+    with st.spinner(f"{voice_key} - {time_label} - 1-100 Fix..."):
         try:
             path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
             st.balloons()
-            st.success(f"✅ Ready! آهي + ڀينرون Clear - {cat}!")
+            st.success(f"✅ Ready! 1-100 Ginti Clear - {cat}!")
             st.audio(path)
             st.caption(f"Fixed: {clean_full_fix(text_input, cat)}")
+            st.info(f"Sindhi 1-10: {', '.join([f'{k}={v}' for k,v in list(SINDHI_1_100.items())[:11]])}")
             with open(path, "rb") as f:
-                st.download_button(f"📥 Download {voice_key} {time_label}", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_FIX.mp3")
+                st.download_button(f"📥 Download {voice_key} {time_label}", f, file_name=f"{voice_key.replace(' ','_')}_{MAX_SEC}s_100FIX.mp3")
         except Exception as e:
             st.error(f"Error: {e}")
