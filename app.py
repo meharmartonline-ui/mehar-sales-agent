@@ -2,15 +2,9 @@ import streamlit as st, os, asyncio, shutil, subprocess
 import edge_tts
 from gtts import gTTS
 
-try:
-    from google.cloud import texttospeech
-    GOOGLE_AVAILABLE = True
-except:
-    GOOGLE_AVAILABLE = False
-
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95: SINDHI KHALIS FIX - Asad/Uzma - No Cut - No WSS")
+st.success("V95: SINDHI KHALIS FIX - Alfaz Cut Band - Sahi Ucharan")
 
 VOICE_CATEGORIES = {
     "🇵🇰 URDU CLEAR - اردو": {
@@ -56,7 +50,7 @@ voices = VOICE_CATEGORIES[cat]
 voice_key = st.selectbox(f"{cat} - Asad/Uzma Age:", list(voices.keys()), index=6)
 voice_name = voices[voice_key]
 
-st.info(f"SELECTED: {cat} - {voice_key} - {voice_name}")
+st.info(f"SELECTED: {cat} - {voice_key}")
 
 MAX_SEC = st.selectbox("⏱️ LIMIT:", [15, 30, 60, 120, 600], index=0)
 MAX_CHARS = MAX_SEC * 15
@@ -67,14 +61,24 @@ TEXTS = {
     "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है!",
 }
 
-text_input = st.text_area(f"Text - {cat} - Khalis Pure - No Cut:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي خالص"]), height=240, max_chars=MAX_CHARS)
+text_input = st.text_area(f"Text - {cat} - Khalis - No Cut:", value=TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي خالص"]), height=240, max_chars=MAX_CHARS)
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
 
-def clean(t): return t.strip()
+def clean(t): 
+    # Khalis - Koi harf delete nahi!
+    return t.strip()
 
-def split_no_cut(text, size=350):
+def split_no_cut_khalis(text, category):
+    # SINDHI KHALIS FIX - 15 sec wala kabhi cut nahi hoga!
+    if "SINDHI" in category:
+        size = 1000  # Sindhi poora ek sath
+    else:
+        size = 500
+    # Agar text chhota hai to cut hi nahi karo - Sahi ucharan ke liye
+    if len(text) <= size:
+        return [text]
     words = text.split(' ')
     parts, cur = [], ""
     for w in words:
@@ -97,25 +101,27 @@ async def try_edge(text, voice, rate, path):
             await asyncio.sleep(1)
     return False
 
-# SINDHI KHALIS BUG FIX - sd language!
-def try_gtts(text, path, category):
+# SINDHI KHALIS FIX - Pehle SD, sahi ucharan!
+def try_gtts_khalis(text, path, category):
     try:
         if "SINDHI" in category:
-            lang = 'sd'  # SINDHI KHALIS FIX
-        elif "ARABIC" in category:
-            lang = 'ar'
-        elif "ENGLISH" in category:
-            lang = 'en'
+            # Sindhi ke liye pehle sd try - Sahi ucharan
+            try:
+                gTTS(text=text, lang='sd', slow=False).save(path)
+                return True
+            except:
+                # Agar sd fail to ur-PK jaisa
+                gTTS(text=text, lang='ur', slow=False).save(path)
+                return True
         elif "HINDI" in category:
-            lang = 'hi'
+            gTTS(text=text, lang='hi', slow=False).save(path)
+            return True
         else:
-            lang = 'ur'
-        gTTS(text=text, lang=lang, slow=False).save(path)
-        return True
-    except Exception as e:
-        print(f"GTTS {lang} fail {e}, trying ur")
-        try:
             gTTS(text=text, lang='ur', slow=False).save(path)
+            return True
+    except:
+        try:
+            gTTS(text=text, lang='en', slow=False).save(path)
             return True
         except:
             return False
@@ -123,16 +129,22 @@ def try_gtts(text, path, category):
 async def gen(text, voice, rate, category):
     if os.path.exists("voice"): shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    parts = split_no_cut(text, 350)
+    parts = split_no_cut_khalis(text, category)
     files = []
     bar = st.progress(0)
     for i, p in enumerate(parts):
         p = clean(p)
         if not p: continue
         path = f"voice/{voice.replace('-','_')}_{i}.mp3"
-        ok = await try_edge(p, voice, rate, path)
-        if not ok:
-            ok = try_gtts(p, path, category)
+        # SINDHI ke liye GTTS SD pehle - Sahi ucharan ke liye
+        if "SINDHI" in category:
+            ok = try_gtts_khalis(p, path, category)
+            if not ok:
+                ok = await try_edge(p, voice, rate, path)
+        else:
+            ok = await try_edge(p, voice, rate, path)
+            if not ok:
+                ok = try_gtts_khalis(p, path, category)
         if ok:
             files.append(path)
         bar.progress((i+1)/len(parts))
@@ -155,7 +167,7 @@ if st.button(f"🎙️ {cat} - {voice_key} - KHALIS BANAO", type="primary", use_
         try:
             path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
             st.balloons()
-            st.success(f"✅ Ready! {cat} - {voice_key} - Sindhi Khalis Pure!")
+            st.success(f"✅ Ready! {cat} - {voice_key} - Alfaz Cut Band - Sahi Ucharan!")
             st.audio(path)
             with open(path, "rb") as f:
                 st.download_button(f"📥 Download {voice_key}", f, file_name=f"{voice_key.replace(' ','_')}_SINDHI_KHALIS.mp3")
