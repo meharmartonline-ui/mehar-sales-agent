@@ -6,4 +6,4 @@ imageio-ffmpeg
 gtts
 moviepy
 numpy
-edge-tts
+edge-tts==6.1.10
