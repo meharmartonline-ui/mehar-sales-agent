@@ -3,9 +3,9 @@ import edge_tts
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: Full System + Pure Sindhi 52 Harf - Language Category Added!")
+st.success("V95 FINAL: Full System + Hindi Added + Pure Sindhi 52 Harf!")
 
-# LANGUAGE CATEGORY - FULL SYSTEM - WAPAS ADD!
+# LANGUAGE CATEGORY - FULL SYSTEM - HINDI ADDED!
 VOICE_CATEGORIES = {
     "🇵🇰 SINDHI KHALIS - سنڌي": {
         "10 Sal Larka - Asad": "ur-PK-AsadNeural",
@@ -24,6 +24,13 @@ VOICE_CATEGORIES = {
         "30 Sal Larka - Asad": "ur-PK-AsadNeural",
         "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
         "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    },
+    "🇮🇳 HINDI - हिन्दी": {
+        "20 Sal Larka - Madhur": "hi-IN-MadhurNeural",
+        "30 Sal Larka - Madhur": "hi-IN-MadhurNeural",
+        "20 Sal Larki - Swara": "hi-IN-SwaraNeural",
+        "30 Sal Larki - Swara": "hi-IN-SwaraNeural",
+        "20 Sal Larki - Swara Fast": "hi-IN-SwaraNeural",
     },
     "🇬🇧 ENGLISH - US": {
         "20 Sal Larka - Guy": "en-US-GuyNeural",
@@ -56,80 +63,46 @@ TIME_OPTIONS = {
     "10 Minutes": 600,
 }
 
-# PURE SINDHI 52 ALPHABET - Full List
 SINDHI_ALPHABET_52 = ["ا", "ب", "ٻ", "ت", "ث", "ج", "ڄ", "چ", "ڇ", "ح", "خ", "د", "ڌ", "ڏ", "ڊ", "ڍ", "ذ", "ر", "ڙ", "ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ڦ", "ق", "ڪ", "ک", "گ", "ڳ", "ڱ", "ل", "م", "ن", "ڻ", "و", "ه", "ھ", "ء", "ي"]
+PURE_SINDHI_TTS_MAP = {"ٻ":"ب","ڄ":"ج","ڃ":"نج","ڇ":"چھ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڌ":"دھ","ڏ":"ڈ","ڊ":"ڈ","ڍ":"ڈھ","ڀ":"بھ","ڦ":"پھ","ڪ":"ک","ڳ":"گ","ڱ":"نگ","ڻ":"ن","ڙ":"ڑ","ھ":"ہ"}
 
-PURE_SINDHI_TTS_MAP = {
-    "ٻ": "ب", "ڄ": "ج", "ڃ": "نج", "ڇ": "چھ", "ٽ": "ٹ", "ٺ": "ٹھ", "ٿ": "تھ",
-    "ڌ": "دھ", "ڏ": "ڈ", "ڊ": "ڈ", "ڍ": "ڈھ", "ڀ": "بھ", "ڦ": "پھ", "ڪ": "ک",
-    "ڳ": "گ", "ڱ": "نگ", "ڻ": "ن", "ڙ": "ڑ", "ھ": "ہ",
-}
-
-SINDHI_NUMBERS = {
-    0:"ٻڙي",1:"هڪ",2:"ٻه",3:"ٽي",4:"چار",5:"پنج",6:"ڇهه",7:"ست",8:"اٺ",9:"نو",10:"ڏهه",
-    11:"يارنهن",12:"ٻارهن",13:"تيرنهن",14:"چوڏهن",15:"پندرهن",16:"سورنهن",17:"سترنهن",18:"ارڙهن",19:"اُڻويهہ",20:"ويهہ",
-    21:"ايڪويهہ",22:"ٻاويھ",23:"ٽاويھ",24:"چوويھ",25:"پنجويھ",26:"ڇويھ",27:"ستاويھ",28:"اٺاويھ",29:"اُڻٽيهہ",30:"ٽيهہ",
-    40:"چاليهہ",50:"پنجاهہ",60:"سٺ",70:"ستر",80:"اسي",90:"نوي",100:"سئو",1000:"هزار"
-}
-
-# UI - FULL SYSTEM - LANGUAGE CATEGORY
-st.markdown("### 🌍 LANGUAGE CATEGORY - زبان چونڊيو")
+st.markdown("### 🌍 LANGUAGE CATEGORY - زبان / भाषा")
 language_cat = st.selectbox("Language Category:", list(VOICE_CATEGORIES.keys()), index=0)
-
 voices = VOICE_CATEGORIES[language_cat]
 voice_key = st.selectbox(f"{language_cat} - Age 10-60:", list(voices.keys()), index=2)
 voice_name = voices[voice_key]
-
 st.info(f"SELECTED: {language_cat} - {voice_key} - {voice_name}")
 
-time_label = st.selectbox("⏱️ TIME CATEGORY - وقت چونڊيو:", list(TIME_OPTIONS.keys()), index=2)
+time_label = st.selectbox("⏱️ TIME CATEGORY:", list(TIME_OPTIONS.keys()), index=2)
 MAX_SEC = TIME_OPTIONS[time_label]
 MAX_CHARS = MAX_SEC * 14
 
-# Default text based on language
 default_texts = {
     "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف ٻه هزار نو سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-    "🇵🇰 URDU - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص شہد سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں! پورے پاکستان میں فری ڈلیوری!",
-    "🇬🇧 ENGLISH - US": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees! Free delivery all over Pakistan!",
-    "🇬🇧 ENGLISH - UK": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees! Free delivery all over Pakistan!",
-    "🇸🇦 ARABIC - عربي": "السلام عليكم! إخواني وأخواتي الأعزاء! عسل مهر مارت نقي 100 بالمائة نقي! فقط بـ 2975 روبية! توصيل مجاني في جميع أنحاء باكستان!",
+    "🇵🇰 URDU - اردو": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص شہد سو فیصد خالص ہے! صرف دو ہزار نو سو پچھتر روپے میں!",
+    "🇮🇳 HINDI - हिन्दी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत शुद्ध है! सिर्फ दो हजार नौ सौ पचहत्तर रुपये में! पूरे भारत में फ्री डिलीवरी!",
+    "🇬🇧 ENGLISH - US": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees! Free delivery!",
+    "🇬🇧 ENGLISH - UK": "Hello! My dear brothers and sisters! Mehar Mart pure honey is 100 percent pure! Only for 2975 rupees!",
+    "🇸🇦 ARABIC - عربي": "السلام عليكم! إخواني وأخواتي الأعزاء! عسل مهر مارت نقي 100 بالمائة!",
 }
 
 text_input = st.text_area(f"Text ({MAX_CHARS} max) - {language_cat} - {time_label}:", value=default_texts.get(language_cat, default_texts["🇵🇰 SINDHI KHALIS - سنڌي"]), height=240, max_chars=MAX_CHARS)
 st.metric(f"{len(text_input)} / {MAX_CHARS}", f"{len(text_input)//14} sec / {MAX_SEC} sec")
 st.progress(min(len(text_input)/MAX_CHARS, 1.0))
-
-rate_opt = st.select_slider("Speed - رفتار:", options=["-5%", "-15%", "+10%"], value="-5%")
+rate_opt = st.select_slider("Speed:", options=["-5%", "-15%", "+10%"], value="-5%")
 
 def clean_pure_sindhi_alphabet(text, lang_cat):
-    t = text.strip()
-    t = t.replace("!", "۔")
-    
-    # ONLY FOR SINDHI - Pure Sindhi 52 Harf Fix - Other languages same!
+    t = text.strip().replace("!", "۔" if "SINDHI" in lang_cat or "URDU" in lang_cat else "!")
     if "SINDHI" in lang_cat:
-        # Original Sindhi words - No Urdu translation!
-        # آهي - Original - Sirf ھ->ہ for TTS - Lamba Aahe - Alif khech ke!
-        for sindhi_char, tts_char in PURE_SINDHI_TTS_MAP.items():
-            t = t.replace(sindhi_char, tts_char)
-        
-        # Lamba Aahe - آہی -> آآہی - Alif khech ke lamba!
+        for sc, tc in PURE_SINDHI_TTS_MAP.items():
+            t = t.replace(sc, tc)
         if "آہی" in t:
             t = t.replace("آہی", "آآہی")
         if "آہے" in t:
             t = t.replace("آہے", "آآہے")
-        # Original آهي fix
-        if "آهي" in t:  # If still original left
+        if "آهي" in t:
             t = t.replace("آهي", "آآہی")
-        
-        t = t.replace("سجی", "سجّی")  # سڄي -> سجّی - Pure!
-        t = t.replace("عليکم", "علیکم").replace("عليڪم", "علیکم")
-        t = t.replace("100%", "سئو سيڪڙو")
-        t = t.replace("2975", "ٻہ ہزار نو سو پنجاہتر").replace("ٻہ ہزار", "بہ ہزار")
-        t = t.replace("اوڻٽيهه سو پنجاهتر", "بہ ہزار نو سو پنجاہتر")
-    else:
-        # Other languages - No Sindhi fix - Same as before!
-        pass
-    
+        t = t.replace("سجی", "سجّی").replace("عليکم", "علیکم").replace("عليڪم", "علیکم").replace("100%", "سئو سيڪڙو").replace("2975", "ٻہ ہزار نو سو پنجاہتر").replace("ٻہ ہزار", "بہ ہزار").replace("اوڻٽيهه سو پنجاهتر", "بہ ہزار نو سو پنجاہتر")
     return t
 
 def split_no_cut(text, size=1000):
@@ -148,8 +121,7 @@ def split_no_cut(text, size=1000):
     return parts if parts else [text]
 
 async def gen_edge(text, voice, rate, path):
-    tries = 5
-    for _ in range(tries):
+    for _ in range(5):
         try:
             if os.path.exists(path):
                 os.remove(path)
@@ -175,7 +147,7 @@ async def gen(text, voice, rate, lang_cat):
         if ok:
             files.append(path)
     if not files:
-        raise Exception("Voice fail - آواز ناڪام")
+        raise Exception("Voice fail")
     final = f"voice/FINAL_{voice_key.replace(' ','_')}_{MAX_SEC}s.mp3"
     try:
         import imageio_ffmpeg
@@ -189,7 +161,7 @@ async def gen(text, voice, rate, lang_cat):
     return final
 
 if st.button(f"🎙️ {language_cat} - {voice_key} - {time_label} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{voice_key} - {time_label} - Bana raha..."):
+    with st.spinner(f"{voice_key} - {time_label}..."):
         try:
             path = asyncio.run(gen(text_input, voice_name, rate_opt, language_cat))
             st.balloons()
