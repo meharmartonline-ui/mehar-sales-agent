@@ -1,90 +1,91 @@
 import streamlit as st, os, re, subprocess, asyncio, shutil
 import edge_tts
+from gtts import gTTS
 
 st.set_page_config(page_title="MEHAR V95 - WORLD STUDIO", layout="centered")
 st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 FINAL: Khalis Pure - Alfaz Cut Band - Sindhi + Urdu + Hindi + English + Arabic")
+st.success("V95 FINAL: Asad + Uzma Only - Age 10-60 - Khalis Pure")
 
 VOICE_CATEGORIES = {
     "🇵🇰 URDU CLEAR": {
-        "10 Sal Larki": "ur-PK-AyeshaNeural",
-        "20 Sal Larki": "ur-PK-UzmaNeural",
-        "30 Sal Larki": "hi-IN-SwaraNeural",
-        "50 Sal Larki": "ur-PK-AyeshaNeural",
-        "60 Sal Larki": "ur-PK-AyeshaNeural",
-        "10 Sal Larka": "ur-PK-AsadNeural",
-        "20 Sal Larka": "ur-PK-AsadNeural",
-        "30 Sal Larka": "hi-IN-MadhurNeural",
-        "50 Sal Larka": "ur-PK-AsadNeural",
-        "60 Sal Larka": "ur-PK-AsadNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
     "🇵🇰 SINDHI KHALIS - سنڌي": {
-        "10 Sal Larki": "ur-PK-AyeshaNeural",
-        "20 Sal Larki": "ur-PK-UzmaNeural",
-        "30 Sal Larki": "ur-PK-UzmaNeural",
-        "50 Sal Larki": "ur-PK-AyeshaNeural",
-        "60 Sal Larki": "ur-PK-AyeshaNeural",
-        "10 Sal Larka": "ur-PK-AsadNeural",
-        "20 Sal Larka": "ur-PK-AsadNeural",
-        "30 Sal Larka": "ur-PK-AsadNeural",
-        "50 Sal Larka": "ur-PK-AsadNeural",
-        "60 Sal Larka": "ur-PK-AsadNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
     "🇮🇳 HINDI - हिंदी": {
-        "10 Sal Larki": "hi-IN-SwaraNeural",
-        "20 Sal Larki": "hi-IN-SwaraNeural",
-        "30 Sal Larki": "en-IN-NeerjaNeural",
-        "50 Sal Larki": "en-IN-NeerjaNeural",
-        "60 Sal Larki": "en-IN-NeerjaNeural",
-        "10 Sal Larka": "hi-IN-MadhurNeural",
-        "20 Sal Larka": "hi-IN-MadhurNeural",
-        "30 Sal Larka": "en-IN-PrabhatNeural",
-        "50 Sal Larka": "en-IN-PrabhatNeural",
-        "60 Sal Larka": "en-IN-PrabhatNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
     "🇺🇸 ENGLISH CLEAR": {
-        "10 Sal Larki": "en-US-AnaNeural",
-        "20 Sal Larki": "en-US-AriaNeural",
-        "30 Sal Larki": "en-US-JennyNeural",
-        "50 Sal Larki": "en-GB-LibbyNeural",
-        "60 Sal Larki": "en-GB-LibbyNeural",
-        "10 Sal Larka": "en-US-AndrewNeural",
-        "20 Sal Larka": "en-US-GuyNeural",
-        "30 Sal Larka": "en-US-DavisNeural",
-        "50 Sal Larka": "en-US-ChristopherNeural",
-        "60 Sal Larka": "en-GB-RyanNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
     "🇸🇦 ARABIC - عربي": {
-        "10 Sal Larki": "ar-AE-FatimaNeural",
-        "20 Sal Larki": "ar-EG-SalmaNeural",
-        "30 Sal Larki": "ar-SA-ZariyahNeural",
-        "50 Sal Larki": "ar-EG-SalmaNeural",
-        "60 Sal Larki": "ar-EG-SalmaNeural",
-        "10 Sal Larka": "ar-AE-HamdanNeural",
-        "20 Sal Larka": "ar-EG-ShakirNeural",
-        "30 Sal Larka": "ar-SA-HamedNeural",
-        "50 Sal Larka": "ar-EG-ShakirNeural",
-        "60 Sal Larka": "ar-SA-HamedNeural",
+        "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+        "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+        "60 Sal Larka - Asad": "ur-PK-AsadNeural",
     },
 }
 
 cat = st.selectbox("📁 CATEGORY:", list(VOICE_CATEGORIES.keys()), index=1)
 voices = VOICE_CATEGORIES[cat]
-voice_key = st.selectbox(f"{cat} - Age 10-20-30-50-60:", list(voices.keys()), index=1)
+voice_key = st.selectbox(f"{cat} - Asad / Uzma - Age 10-60:", list(voices.keys()), index=6)
 voice_name = voices[voice_key]
 
-st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis Pure")
+st.info(f"SELECTED: {cat} - {voice_key} -> {voice_name} - Khalis")
 
 limit_options = {"⚡ 15 Sec":15, "🔥 30 Sec":30, "🎙️ 1 Min":60, "⏰ 2 Min":120, "🚀 10 Min FULL":600}
-MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys()), index=2)]
+MAX_SEC = limit_options[st.selectbox("⏱️ LIMIT:", list(limit_options.keys()), index=0)]
 MAX_CHARS = MAX_SEC * 15
 
 TEXTS = {
-    "🇵🇰 URDU CLEAR": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے! صرف انتیس سو پچھتر روپے میں فری ڈیلیوری!",
-    "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾! سڄي پاڪستان ۾ فري ڊليوري!",
-    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है! सिर्फ 2975 में!",
-    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure and natural! Only 2975 with free delivery all over Pakistan!",
-    "🇸🇦 ARABIC - عربي": "السلام عليكم ورحمة الله! اخواني واخواتي الاعزاء! عسل مهر مارت نقي 100 بالمئة وطبيعي! فقط 2975 مع توصيل مجاني!",
+    "🇵🇰 URDU CLEAR": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ کا خالص ماکی ایک سو فیصد خالص ہے!",
+    "🇵🇰 SINDHI KHALIS - سنڌي": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ جو خالص ماکي هڪ سئو سيڪڙو خالص آهي! صرف اوڻٽيهه سو پنجاهتر روپين ۾!",
+    "🇮🇳 HINDI - हिंदी": "नमस्ते! मेरे प्यारे भाइयों और बहनों! मेहर मार्ट का शुद्ध शहद सौ प्रतिशत खालिस है!",
+    "🇺🇸 ENGLISH CLEAR": "Hello friends! Mehar Mart Pure Honey is 100 percent pure!",
+    "🇸🇦 ARABIC - عربي": "السلام عليكم! عسل مهر مارت نقي 100 بالمئة!",
 }
 
 default_text = TEXTS.get(cat, TEXTS["🇵🇰 SINDHI KHALIS - سنڌي"])
@@ -97,14 +98,10 @@ st.progress(min(len(text_input)/MAX_CHARS, 1.0))
 
 rate_opt = st.select_slider("Speed:", options=["-15%", "-10%", "-5%", "+0%", "+10%"], value="-5%")
 
-# KHALIS PURE FIX - Alfaz cut band!
 def clean(t): 
-    # Koi lafz cut nahi - Khalis as it is!
     return t.strip()
 
-# KHALIS PURE FIX - Lafz beech se kabhi cut nahi hoga!
 def split_no_cut(text, size=400):
-    # Harf ba harf cut band - Sirf space se cut - Khalis pure!
     words = text.split(' ')
     parts = []
     cur = ""
@@ -121,11 +118,30 @@ def split_no_cut(text, size=400):
         parts.append(cur)
     return parts if parts else [text]
 
-async def gen(text, voice, rate):
+async def gen_edge_with_retry(text, voice, rate, path):
+    for attempt in range(4):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+            await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
+            if os.path.exists(path) and os.path.getsize(path) > 800:
+                return True
+        except Exception as e:
+            await asyncio.sleep(1.5)
+    return False
+
+def gtts_backup(text, path, category):
+    try:
+        lang = 'ar' if 'ARABIC' in category else 'en' if 'ENGLISH' in category else 'ur'
+        gTTS(text=text, lang=lang, slow=False).save(path)
+        return True
+    except:
+        return False
+
+async def gen(text, voice, rate, category):
     if os.path.exists("voice"):
         shutil.rmtree("voice")
     os.makedirs("voice", exist_ok=True)
-    # Khalis pure text - No change
     target = MAX_SEC * 12
     if len(text) < target and MAX_SEC>=60:
         while len(text) < target:
@@ -139,17 +155,14 @@ async def gen(text, voice, rate):
         if not p: continue
         safe = voice.replace("-", "_")
         path = f"voice/{safe}_{i}.mp3"
-        # Khalis voice - Pure language
-        try:
-            await edge_tts.Communicate(text=p, voice=voice, rate=rate).save(path)
-        except:
-            await asyncio.sleep(1)
-            try:
-                await edge_tts.Communicate(text=p, voice=voice, rate=rate).save(path)
-            except:
-                await edge_tts.Communicate(text=p, voice="hi-IN-SwaraNeural", rate=rate).save(path)
-        files.append(path)
+        ok = await gen_edge_with_retry(p, voice, rate, path)
+        if not ok:
+            ok = gtts_backup(p, path, category)
+        if ok and os.path.exists(path):
+            files.append(path)
         bar.progress((i+1)/len(parts))
+    if not files:
+        raise Exception("Voice nahi bani - Dobara BANAO dabao")
     final = f"voice/FINAL_{cat[:3]}_KHALIS.mp3"
     try:
         import imageio_ffmpeg
@@ -163,10 +176,13 @@ async def gen(text, voice, rate):
     return final
 
 if st.button(f"🎙️ {cat} - {voice_key} - KHALIS BANAO", type="primary", use_container_width=True):
-    with st.spinner(f"{cat} - {voice_key} - Khalis Pure bana raha hun..."):
-        path = asyncio.run(gen(text_input, voice_name, rate_opt))
-        st.balloons()
-        st.success(f"✅ Ready! {cat} - {voice_key} - Khalis Pure - No Cut!")
-        st.audio(path)
-        with open(path, "rb") as f:
-            st.download_button(f"📥 Download {voice_key} Khalis", f, file_name=f"{cat[:5]}_{voice_key.replace(' ','_')}_KHALIS_{MAX_SEC}.mp3")
+    with st.spinner(f"{cat} - {voice_key} - {voice_name} Khalis..."):
+        try:
+            path = asyncio.run(gen(text_input, voice_name, rate_opt, cat))
+            st.balloons()
+            st.success(f"✅ Ready! {cat} - {voice_key} - Khalis Pure - No Cut!")
+            st.audio(path)
+            with open(path, "rb") as f:
+                st.download_button(f"📥 Download {voice_key} Khalis", f, file_name=f"{cat[:5]}_{voice_key.replace(' ','_')}_KHALIS_{MAX_SEC}.mp3")
+        except Exception as e:
+            st.error(f"Error: {e}")
