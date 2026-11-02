@@ -2,23 +2,17 @@ import streamlit as st, os, asyncio, requests
 from dotenv import load_dotenv
 load_dotenv()
 
-# ===== FIX - Pillow 10+ ANTIALIAS Error - V103 ka bug =====
-from PIL import Image
-if not hasattr(Image, 'ANTIALIAS'):
-    Image.ANTIALIAS = Image.LANCZOS
-if not hasattr(Image, 'BILINEAR'):
-    Image.BILINEAR = Image.Bilinear
+st.set_page_config(page_title="MEHAR V105 - FIX", layout="centered")
+
+# ===== FIX 1: Pillow ANTIALIAS Patch BEFORE any import =====
+try:
+    from PIL import Image
+    if not hasattr(Image, 'ANTIALIAS'):
+        Image.ANTIALIAS = Image.LANCZOS
+except: pass
 # ============================================================
 
 import edge_tts
-from PIL import ImageDraw, ImageFont
-
-try:
-    from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip, ColorClip
-    HAS_MOVIEPY = True
-except Exception as e:
-    HAS_MOVIEPY = False
-    MOVIEPY_ERROR = str(e)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
 groq_client = None
@@ -28,8 +22,7 @@ try:
         groq_client = Groq(api_key=GROQ_API_KEY)
 except: pass
 
-st.set_page_config(page_title="MEHAR V104 - FIX", layout="centered")
-st.title("MEHAR V104 - WORLD STUDIO 🌍 - Voice Same + Video Fixed")
+st.title("MEHAR V105 - WORLD STUDIO 🌍 - Voice Same + Video Safe")
 
 TIME_OPTIONS = {"10 Second":10,"15 Second":15,"30 Second":30,"60 Second (1 Min)":60,"2 Minutes":120,"5 Minutes":300}
 VOICES = {
@@ -68,16 +61,44 @@ async def gen_edge(text, voice, rate, path):
         except: await asyncio.sleep(1)
     return False
 
-tab1, tab2 = st.tabs(["🎙️ VOICE STUDIO - SAME V102", "🎬 VIDEO GENERATOR - FIXED V104"])
+# Lazy Video Function - App Crash Nahi Hoga
+def make_video_safe(image_path, voice_path, output_path, duration, effect="Zoom In"):
+    try:
+        from moviepy.editor import ImageClip, AudioFileClip
+        from PIL import Image as PILImage
+        if not hasattr(PILImage, 'ANTIALIAS'):
+            PILImage.ANTIALIAS = PILImage.LANCZOS
+        
+        audio_clip = AudioFileClip(voice_path)
+        real_duration = min(audio_clip.duration + 1.2, duration + 2)
+        
+        image_clip = ImageClip(image_path).set_duration(real_duration)
+        image_clip = image_clip.resize(height=1920)
+        w, h = image_clip.size
+        if w > 1080:
+            image_clip = image_clip.crop(x_center=w/2, y_center=h/2, width=1080, height=1920)
+        
+        if "Zoom In" in effect:
+            image_clip = image_clip.resize(lambda t: 1 + 0.08*t/real_duration)
+        elif "Zoom Out" in effect:
+            image_clip = image_clip.resize(lambda t: 1.15 - 0.08*t/real_duration)
+        
+        final = image_clip.set_audio(audio_clip)
+        final.write_videofile(output_path, fps=24, codec='libx264', audio_codec='aac', verbose=False, logger=None)
+        return True, output_path
+    except Exception as e:
+        return False, str(e)
+
+tab1, tab2 = st.tabs(["🎙️ VOICE STUDIO - SAME V102", "🎬 VIDEO GENERATOR - SAFE"])
 
 with tab1:
-    st.markdown("### ✅ Purana Voice Studio - 100% Same - Paka Same Rahega")
-    st.success("Ye Tab 1 - V102 ka same code - Larka/Larki, Alfabet Fix, Time sab same!")
+    st.markdown("### ✅ Purana Voice Studio - 100% Same - Paka Same Rahega - No Crash")
+    st.success("Ye Tab 1 - V102 ka same code - Larka/Larki, Alfabet Fix, Time sab same - Oh no fix!")
     for lang in VOICES:
         if f"text_{lang}" not in st.session_state: st.session_state[f"text_{lang}"] = ""
-    master = st.text_area("✍️ MASTER PROMPT:", height=120, key="master_text_widget")
-    if st.button("🔄 ALL 5 BOX BHARO", type="primary", use_container_width=True, key="btn_all_v104"):
-        src = st.session_state.get("master_text_widget","").strip()
+    master = st.text_area("✍️ MASTER PROMPT:", height=120, key="master_text_widget_v105")
+    if st.button("🔄 ALL 5 BOX BHARO", type="primary", use_container_width=True, key="btn_all_v105"):
+        src = st.session_state.get("master_text_widget_v105","").strip()
         if src:
             for LANG in VOICES:
                 st.session_state[f"text_{LANG}"] = translate_fix(src, LANG)
@@ -88,112 +109,78 @@ with tab1:
         with st.expander(f"{LANG} BOX - {len(st.session_state.get(f'text_{LANG}',''))} chars", expanded=False):
             c1,c2 = st.columns(2)
             with c1:
-                time_sel = st.selectbox(f"⏱️ Time:", list(TIME_OPTIONS.keys()), index=3, key=f"ts_{LANG}_v104")
+                time_sel = st.selectbox(f"⏱️ Time:", list(TIME_OPTIONS.keys()), index=3, key=f"ts_{LANG}_v105")
                 MAX_SEC = TIME_OPTIONS[time_sel]
             with c2:
-                vkey = st.selectbox(f"🎤 Voice (Larka/Larki):", list(VOICES[LANG].keys()), key=f"v_{LANG}_v104")
+                vkey = st.selectbox(f"🎤 Voice (Larka/Larki):", list(VOICES[LANG].keys()), key=f"v_{LANG}_v105")
                 vname = VOICES[LANG][vkey]
-            txt = st.text_area(f"✍️ {LANG} Text:", height=100, key=f"ta_{LANG}_v104")
-            rate = st.select_slider(f"Speed:", options=["-5%","-15%","+10%"], value="-5%", key=f"sp_{LANG}_v104")
-            if st.button(f"🎙️ Voice Banao {MAX_SEC}s - {vkey}", key=f"gen_{LANG}_v104", type="primary", use_container_width=True):
-                if txt:
+            txt = st.text_area(f"✍️ {LANG} Text:", height=100, key=f"ta_{LANG}_v105", value=st.session_state.get(f"text_{LANG}",""))
+            rate = st.select_slider(f"Speed:", options=["-5%","-15%","+10%"], value="-5%", key=f"sp_{LANG}_v105")
+            if st.button(f"🎙️ Voice Banao {MAX_SEC}s - {vkey}", key=f"gen_{LANG}_v105", type="primary", use_container_width=True):
+                if txt.strip():
                     os.makedirs("voice", exist_ok=True)
-                    fp = f"voice/{LANG}_{MAX_SEC}.mp3"
+                    fp = f"voice/{LANG}_{MAX_SEC}_v105.mp3"
                     cleaned = clean_for_voice(txt, LANG)
-                    ok = asyncio.run(gen_edge(cleaned, vname, rate, fp))
-                    if ok:
-                        st.audio(fp)
-                        st.session_state[f"last_audio_{LANG}"] = fp
-                        with open(fp,"rb") as f: st.download_button(f"📥 Download {LANG} {vkey}", f, file_name=f"{LANG}_{vkey}.mp3", key=f"dl_{LANG}_v104")
+                    with st.spinner(f"{LANG} {vkey}..."):
+                        ok = asyncio.run(gen_edge(cleaned, vname, rate, fp))
+                        if ok:
+                            st.audio(fp)
+                            with open(fp,"rb") as f: st.download_button(f"📥 Download {LANG} {vkey}", f, file_name=f"{LANG}_{vkey}.mp3", key=f"dl_{LANG}_v105")
 
 with tab2:
-    st.markdown("### 🎬 MEHAR VIDEO AD GENERATOR - V104 FIXED")
-    if not HAS_MOVIEPY:
-        st.error(f"MoviePy Error: {MOVIEPY_ERROR if 'MOVIEPY_ERROR' in locals() else ''}")
-        st.code("pip install moviepy==1.0.3 Pillow==9.5.0 edge-tts")
-    else:
-        st.success("✅ Video Engine Ready - ANTIALIAS Fix Applied!")
+    st.markdown("### 🎬 VIDEO AD - SAFE MODE - App Crash Nahi Hoga")
+    st.info("Aapki honey wali image jaisi product image se ad video - Mobile 9:16")
     
-    prod_image = st.file_uploader("📸 Product Image (Mehar Honey Jar) - Aap wali image jaisi:", type=["jpg","jpeg","png","webp"], key="prod_v104")
+    prod_image = st.file_uploader("📸 Product Image Upload:", type=["jpg","jpeg","png","webp"], key="prod_v105")
     
     col1,col2 = st.columns(2)
     with col1:
-        vid_lang = st.selectbox("🌍 Video Language:", ["SINDHI","URDU","HINDI","ENGLISH","ARABIC"], index=1, key="vlang_v104")
-        vid_time = st.selectbox("⏱️ Video Duration:", list(TIME_OPTIONS.keys()), index=3, key="vid_time_v104")
+        vid_lang = st.selectbox("🌍 Language:", ["SINDHI","URDU","HINDI","ENGLISH","ARABIC"], index=1, key="vlang_v105")
+        vid_time = st.selectbox("⏱️ Duration:", list(TIME_OPTIONS.keys()), index=3, key="vid_time_v105")
         VID_SEC = TIME_OPTIONS[vid_time]
     with col2:
-        vid_voice_key = st.selectbox("🎤 Video Voice:", list(VOICES[vid_lang].keys()), key="vid_voice_v104")
+        vid_voice_key = st.selectbox("🎤 Voice:", list(VOICES[vid_lang].keys()), key="vid_voice_v105")
         vid_voice = VOICES[vid_lang][vid_voice_key]
-        vid_speed = st.select_slider("Speed Video:", options=["-5%","-15%","+10%"], value="-5%", key="vid_speed_v104")
+        vid_speed = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key="vid_speed_v105")
     
-    default_vid_text = st.session_state.get(f"text_{vid_lang}", "") or st.session_state.get("master_text_widget","") or "Mehar Mart Khalis Shahad - 100% Pure - Rs 2975 - Free Delivery!"
-    vid_text = st.text_area(f"✍️ Video Ad Text ({vid_lang}):", value=default_vid_text[:VID_SEC*14], height=120, key="vid_text_v104")
+    default_vid_text = st.session_state.get(f"text_{vid_lang}", "") or st.session_state.get("master_text_widget_v105","") or "Mehar Mart Khalis Shahad - 100% Pure - Rs 2975 - Free Delivery!"
+    vid_text = st.text_area(f"✍️ Video Text ({vid_lang}):", value=default_vid_text[:VID_SEC*14], height=120, key="vid_text_v105")
+    zoom_effect = st.selectbox("Image Effect:", ["Zoom In (Mobile Style)", "Zoom Out", "Static"], key="zoom_v105")
     
-    st.markdown("#### 🎨 Video Style - Mobile Ad Jaisa - Bottom Text")
-    s1,s2 = st.columns(2)
-    with s1:
-        text_position = st.selectbox("Text Position:", ["Bottom", "Top", "Center"], key="pos_v104")
-        zoom_effect = st.selectbox("Image Effect:", ["Zoom In (Mobile Style)", "Zoom Out", "Static"], key="zoom_v104")
-    with s2:
-        show_price = st.checkbox("💰 Price Tag Show (Rs 2975)", value=True, key="price_v104")
-        show_logo = st.checkbox("🏷️ Mehar Mart Logo Text", value=True, key="logo_v104")
-    
-    if st.button("🎬 VIDEO BANAO - Image + Voice + Text - FIXED", type="primary", use_container_width=True, key="make_video_v104"):
+    if st.button("🎬 VIDEO BANAO - FIXED", type="primary", use_container_width=True, key="make_video_v105"):
         if not prod_image:
-            st.error("Pehle Product Image Upload Karo!")
+            st.error("Image Upload Karo!")
         elif not vid_text.strip():
             st.error("Text Likho!")
-        elif not HAS_MOVIEPY:
-            st.error("MoviePy install nahi")
         else:
-            with st.spinner(f"🎬 {vid_lang} Video Ban Raha Hai... 40 sec lagega..."):
+            with st.spinner(f"🎬 {vid_lang} Video Ban Raha... 30-40 sec..."):
                 try:
                     os.makedirs("video", exist_ok=True)
-                    img = Image.open(prod_image).convert("RGB")
-                    img_path = f"video/input_{vid_lang}.jpg"
+                    from PIL import Image as PILImage
+                    img = PILImage.open(prod_image).convert("RGB")
+                    img_path = f"video/input_{vid_lang}_v105.jpg"
                     img.save(img_path)
                     
-                    voice_path = f"video/voice_{vid_lang}_{VID_SEC}.mp3"
+                    voice_path = f"video/voice_{vid_lang}_{VID_SEC}_v105.mp3"
                     cleaned_vid = clean_for_voice(vid_text, vid_lang)
                     ok_voice = asyncio.run(gen_edge(cleaned_vid, vid_voice, vid_speed, voice_path))
                     
                     if not ok_voice:
-                        st.error("Voice Fail - Dobara try karo")
+                        st.error("Voice Fail")
                     else:
-                        audio_clip = AudioFileClip(voice_path)
-                        real_duration = min(audio_clip.duration + 1.5, VID_SEC + 2)
-                        
-                        # Image Clip - Mobile Vertical 9:16 - FIXED ANTIALIAS
-                        image_clip = ImageClip(img_path).set_duration(real_duration)
-                        # Resize with LANCZOS not ANTIALIAS
-                        image_clip = image_clip.resize(height=1920)
-                        # Crop center 1080x1920
-                        w, h = image_clip.size
-                        if w > 1080:
-                            image_clip = image_clip.crop(x_center=w/2, y_center=h/2, width=1080, height=1920)
-                        
-                        # Zoom effect
-                        if "Zoom In" in zoom_effect:
-                            image_clip = image_clip.resize(lambda t: 1 + 0.08*t/real_duration)
-                        elif "Zoom Out" in zoom_effect:
-                            image_clip = image_clip.resize(lambda t: 1.15 - 0.08*t/real_duration)
-                        
-                        # Text Overlay - Simple ColorClip + Text
-                        # For now no complex text image - just audio + image - Text will be in caption
-                        final_clip = image_clip.set_audio(audio_clip)
-                        
-                        output_path = f"video/MEHAR_AD_{vid_lang}_{VID_SEC}s_FIXED.mp4"
-                        final_clip.write_videofile(output_path, fps=24, codec='libx264', audio_codec='aac', verbose=False, logger=None)
-                        
-                        st.success(f"✅ Video Ready! {vid_lang} - {real_duration:.1f}s - Mobile 9:16 - ANTIALIAS Fixed!")
-                        st.video(output_path)
-                        with open(output_path,"rb") as f:
-                            st.download_button(f"📥 Download Video Ad {vid_lang}", f, file_name=f"Mehar_{vid_lang}_Ad_{VID_SEC}s.mp4", mime="video/mp4", type="primary", use_container_width=True, key="dl_vid_v104")
-                        st.audio(voice_path)
-                        st.balloons()
-                        
+                        output_path = f"video/MEHAR_AD_{vid_lang}_{VID_SEC}s_V105.mp4"
+                        success, result = make_video_safe(img_path, voice_path, output_path, VID_SEC, zoom_effect)
+                        if success:
+                            st.success(f"✅ Video Ready! {vid_lang} - Mobile 9:16 - Oh No Fixed!")
+                            st.video(result)
+                            with open(result,"rb") as f:
+                                st.download_button(f"📥 Download Ad {vid_lang}", f, file_name=f"Mehar_{vid_lang}_Ad_{VID_SEC}s.mp4", mime="video/mp4", type="primary", use_container_width=True, key="dl_vid_v105")
+                            st.audio(voice_path)
+                            st.balloons()
+                        else:
+                            st.error(f"Video Error: {result}")
+                            st.info("Fix: requirements.txt me Pillow==9.5.0 aur moviepy==1.0.3 lagao")
                 except Exception as e:
-                    st.error(f"Video Error Fixed Version: {e}")
-                    st.info("Agar phir error aaye to requirements.txt me Pillow==9.5.0 lagao")
+                    st.error(f"Error: {e}")
 
-st.caption("V104 - ANTIALIAS Fixed: Image.ANTIALIAS = Image.LANCZOS - Voice Studio Paka Same - V102 Same")
+st.caption("V105 - Oh No Fixed - Lazy MoviePy Import - Voice Paka Same V102 - Video Safe")
