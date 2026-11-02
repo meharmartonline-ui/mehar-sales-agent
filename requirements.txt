@@ -1,2 +1,6 @@
 streamlit
 edge-tts
+Pillow
+python-dotenv
+groq
+requests
