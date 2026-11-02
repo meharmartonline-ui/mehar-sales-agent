@@ -2,26 +2,26 @@ import streamlit as st, os, asyncio, subprocess, requests, textwrap, time, rando
 from urllib.parse import quote
 from dotenv import load_dotenv
 load_dotenv()
-st.set_page_config(page_title="MEHAR V113 - FINAL FIX", layout="centered")
+st.set_page_config(page_title="MEHAR V115 - ASALAM FIX", layout="centered")
 
 from PIL import Image
 if not hasattr(Image, 'ANTIALIAS'): Image.ANTIALIAS = Image.LANCZOS
 import edge_tts
 
-st.title("MEHAR V113 - FINAL FIX ✅")
+st.title("MEHAR V115 - JO LIKHA WAHI BOLEGA ✅")
 
 TIME_OPTIONS = {"10 Second":10,"15 Second":15,"30 Second":30,"60 Second (1 Min)":60,"2 Minutes":120}
 
-# VOICES - ONLY Asad Uzma for SINDHI URDU + Best for Others
+# V115 - Har Language me Asad Uzma option - Taake Asalam saaf bole
 VOICES = {
     "SINDHI": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
     "URDU": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
-    "HINDI": {"Madhur Larka": "hi-IN-MadhurNeural", "Swara Larki": "hi-IN-SwaraNeural"},
-    "ENGLISH": {"Guy Larka": "en-US-GuyNeural", "Jenny Larki": "en-US-JennyNeural"},
-    "ARABIC": {"Hamed Larka": "ar-SA-HamedNeural", "Zariyah Larki": "ar-SA-ZariyahNeural"},
+    "HINDI": {"Uzma Larki (Asalam ke liye Best)": "ur-PK-UzmaNeural", "Asad Larka (Asalam Best)": "ur-PK-AsadNeural", "Madhur Larka (Hindi)": "hi-IN-MadhurNeural", "Swara Larki (Hindi)": "hi-IN-SwaraNeural"},
+    "ENGLISH": {"Jenny Larki": "en-US-JennyNeural", "Guy Larka": "en-US-GuyNeural", "Uzma Larki": "ur-PK-UzmaNeural", "Asad Larka": "ur-PK-AsadNeural"},
+    "ARABIC": {"Zariyah Larki": "ar-SA-ZariyahNeural", "Hamed Larka": "ar-SA-HamedNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
 }
 
-SINDHI_TTS_MAP = {"ٻ":"ب","ڄ":"ج","ڏ":"ڈ","ڳ":"گ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڀ":"بھ","ڦ":"پھ","ڌ":"دھ","ڊ":"ڈ","ڙ":"ڑ","ڃ":"نج","ڱ":"نگ","ڻ":"ن","ڪ":"ک","ھ":"ہ","۽":"اور","۾":"میں"}
+SINDHI_TTS_MAP = {"ٻ":"ب","ڄ":"ج","ڏ":"ڈ","ڳ":"گ","ٽ":"ٹ","ٺ":"ٹھ","ٿ":"تھ","ڀ":"بھ","ڦ":"پھ","ڌ":"دھ","ڊ":"ڈ","ڙ":"ڑ","ڃ":"نج","ڱ":"نگ","ڻ":"ن","ڪ":"ک","ھ":"ہ"}
 ARABIC_TTS_MAP = {"َ":"","ُ":"","ِ":"","ً":"","ٌ":"","ٍ":"","ّ":"","ْ":""}
 
 def clean_for_voice(text, lang):
@@ -32,22 +32,12 @@ def clean_for_voice(text, lang):
         for k,v in ARABIC_TTS_MAP.items(): t=t.replace(k,v)
     return t.replace("  "," ")
 
-# FIXED - Ab Mix Nahi Hoga - Har Language Saaf
+# V115 - JO LIKHA WAHI - KOI NAMASTE / HELLO / EXTRA NAHI
 def translate_fix(text, target):
     if not text.strip():
         return ""
-    # Original text sirf SINDHI me rahega - Baaki me saaf translation - Mix nahi
-    if target == "SINDHI":
-        return text  # Jo MASTER me Sindhi likho ge wahi
-    elif target == "URDU":
-        return "السلام علیکم! مہر مارٹ کا خالص شہد 100% خالص ہے، ملاوٹ سے پاک! صرف 2975 روپے میں فری ہوم ڈلیوری پورے پاکستان میں! ابھی آرڈر کریں!"
-    elif target == "HINDI":
-        return "नमस्ते! मेहर मार्ट का शुद्ध शहद 100% शुद्ध है, मिलावट से मुक्त! सिर्फ 2975 रुपये में फ्री होम डिलीवरी पूरे भारत में! अभी ऑर्डर करें!"
-    elif target == "ENGLISH":
-        return "Hello! Mehar Mart pure honey 100% pure, free from adulteration! Only 2975 rupees with free home delivery all over Pakistan! Order now!"
-    elif target == "ARABIC":
-        return "السلام عليكم! عسل مهر مارت نقي 100% خال من الغش! فقط 2975 روبية مع توصيل مجاني في جميع أنحاء باكستان! اطلب الآن!"
-    return text
+    # Jo MASTER me likha hai wahi - Koi extra Namaste / Hello / Bharat / Pakistan nahi jodega
+    return text.strip()
 
 async def gen_edge(text, voice, rate, path):
     for _ in range(5):
@@ -120,141 +110,127 @@ def concat_videos(video_list, final_path):
         return os.path.exists(final_path)
     except: return False
 
-tab1, tab2, tab3 = st.tabs(["✅ VOICE V102 SAME", "🎬 VIDEO + CAPTION", "🎭 AI DRAMA"])
+tab1, tab2, tab3 = st.tabs(["✅ VOICE - JO LIKHA WAHI", "🎬 VIDEO + CAPTION", "🎭 AI DRAMA"])
 
 with tab1:
-    st.markdown("### ✅ Voice Same - Paka Same V102 - Fixed")
-    st.markdown("**MASTER me Sindhi likho - Phir ALL 5 BOX dabao - Har box me saaf alag language ayegi - Mix nahi!**")
-    master_input = st.text_area("MASTER:", height=120, key="master_v113", placeholder="مثال: منهنجو نالو علي آهي...")
+    st.markdown("### ✅ V115 - Jo Likha Wahi Bolega - Namaste Bug Fixed")
+    st.success("Ab koi extra `Namaste / Hello / Bharat / Pakistan` nahi - Jo MASTER me likho ge wahi har box me jayega - Jo box me likha hoga wahi voice banegi!")
+    st.markdown("**Tariqa: MASTER me `Asalam O Alaikum` likho - ALL 5 BOX dabao - Phir HINDI box me Voice `Uzma Larki (Asalam ke liye Best)` select karo - Wo Asalam saaf bolegi - Madhur Hindi voice Asalam saaf nahi bolta!**")
+    
+    master_input = st.text_area("MASTER:", height=130, key="master_v115", placeholder="Yahan likho: Asalam O Alaikum! Mehar Mart ka khalis shahad - Pore Pakistan me free delivery!")
 
-    if st.button("ALL 5 BOX", type="primary", use_container_width=True, key="btn_all_v113"):
-        src = st.session_state.get("master_v113","").strip()
+    if st.button("ALL 5 BOX - Jo Likha Wahi Copy - No Extra", type="primary", use_container_width=True, key="btn_all_v115"):
+        src = st.session_state.get("master_v115","").strip()
         if src:
             for LANG in ["SINDHI","URDU","HINDI","ENGLISH","ARABIC"]:
-                txt = translate_fix(src, LANG)
-                st.session_state[f"text_{LANG}"] = txt
-                st.session_state[f"ta_{LANG}_v113"] = txt
-            st.success("✅ ALL 5 BOX Filled! Ab neeche har language saaf ayegi - Mix nahi!")
+                st.session_state[f"text_{LANG}"] = src
+                st.session_state[f"ta_{LANG}_v115"] = src
+            st.success(f"✅ Copy ho gaya! Ab Hindi me bhi `Asalam O Alaikum` hi hai - `Namaste` khatam! Jo likha wahi bolega!")
             time.sleep(0.6)
             st.rerun()
         else:
-            st.error("Pehle MASTER me text likho!")
+            st.error("Pehle MASTER me likho!")
 
     st.divider()
     for LANG in ["SINDHI","URDU","HINDI","ENGLISH","ARABIC"]:
-        with st.expander(f"{LANG}", expanded=(LANG in ["SINDHI","URDU"])):
+        with st.expander(f"{LANG}", expanded=(LANG in ["SINDHI","URDU","HINDI"])):
             c1,c2 = st.columns(2)
             with c1:
-                time_sel = st.selectbox("⏱️ Time:", list(TIME_OPTIONS.keys()), index=2, key=f"ts_{LANG}_v113")
+                time_sel = st.selectbox("⏱️ Time:", list(TIME_OPTIONS.keys()), index=2, key=f"ts_{LANG}_v115")
             with c2:
-                vkey = st.selectbox("🎤 Voice:", list(VOICES[LANG].keys()), index=0, key=f"v_{LANG}_v113")
+                vkey = st.selectbox("🎤 Voice:", list(VOICES[LANG].keys()), index=0, key=f"v_{LANG}_v115")
                 vname = VOICES[LANG][vkey]
             
             default_val = st.session_state.get(f"text_{LANG}", "")
-            txt = st.text_area(f"✍️ {LANG}:", height=140, key=f"ta_{LANG}_v113", value=default_val)
-            rate = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key=f"sp_{LANG}_v113")
+            txt = st.text_area(f"✍️ {LANG} - Jo yahan likha hoga wahi bolega (Extra nahi):", height=150, key=f"ta_{LANG}_v115", value=default_val)
+            rate = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key=f"sp_{LANG}_v115")
             
-            if st.button(f"🎙️ Voice {vkey} - {LANG}", key=f"gen_{LANG}_v113", type="primary", use_container_width=True):
+            if st.button(f"🎙️ Voice {vkey} - {LANG}", key=f"gen_{LANG}_v115", type="primary", use_container_width=True):
                 if txt.strip():
                     os.makedirs("voice", exist_ok=True)
-                    fp = f"voice/{LANG}_v113.mp3"
-                    with st.spinner(f"{LANG} {vkey} ban rahi..."):
+                    fp = f"voice/{LANG}_v115.mp3"
+                    with st.spinner(f"{LANG} {vkey} - Jo likha wahi bol raha..."):
                         ok = asyncio.run(gen_edge(clean_for_voice(txt, LANG), vname, rate, fp))
                         if ok:
                             st.audio(fp)
-                            st.success(f"✅ {LANG} - {vkey} Ready!")
+                            st.success(f"✅ {LANG} - {vkey} Ready! - Jo likha tha wahi bola!")
                             with open(fp,"rb") as f:
-                                st.download_button(f"📥 Download {LANG} {vkey}", f, file_name=f"{LANG}_{vkey}.mp3", mime="audio/mp3", key=f"dl_{LANG}_v113")
+                                st.download_button(f"📥 Download {LANG} {vkey}", f, file_name=f"{LANG}_{vkey}.mp3", mime="audio/mp3", key=f"dl_{LANG}_v115")
                         else: st.error("Voice Fail")
                 else: st.warning("Text likho!")
 
 with tab2:
-    st.markdown("### 🎬 Video - Image + Voice + Caption")
-    prod_image = st.file_uploader("📸 Image:", type=["jpg","jpeg","png","webp"], key="prod_v113")
+    st.markdown("### 🎬 Video - Jo Likha Wahi Voice + Wahi Caption")
+    prod_image = st.file_uploader("📸 Image:", type=["jpg","jpeg","png","webp"], key="prod_v115")
     if prod_image: st.image(prod_image, width=220)
     has_ff = check_ffmpeg()
     if has_ff: st.success("✅ ffmpeg OK")
-    else: st.error("❌ ffmpeg nahi")
     col1,col2 = st.columns(2)
     with col1:
-        vid_lang = st.selectbox("Lang:", ["URDU","SINDHI","HINDI","ENGLISH"], index=0, key="vlang_v113")
-        vid_voice_key = st.selectbox("Voice:", ["Uzma Larki","Asad Larka"], index=0, key="vid_voice_v113")
-        vid_voice = VOICES[vid_lang][vid_voice_key] if vid_voice_key in VOICES[vid_lang] else "ur-PK-UzmaNeural"
+        vid_lang = st.selectbox("Lang:", ["URDU","SINDHI","HINDI","ENGLISH"], index=0, key="vlang_v115")
+        vid_voice_key = st.selectbox("Voice:", ["Uzma Larki (Asalam Best)","Asad Larka"], index=0, key="vid_voice_v115")
+        vid_voice = "ur-PK-UzmaNeural" if "Uzma" in vid_voice_key else "ur-PK-AsadNeural"
     with col2:
-        show_caption = st.checkbox("📝 Caption - Jo Voice Wahi Text", value=True, key="cap_v113")
-    default_vid_text = st.session_state.get(f"text_{vid_lang}", "") or "Mehar Mart Khalis Shahad - Rs 2975"
-    vid_text = st.text_area(f"Text - Yahi Voice + Caption:", value=default_vid_text[:200], height=110, key="vid_text_v113")
-    vid_speed = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key="vid_speed_v113")
-    if st.button("🎬 VIDEO BANAO", type="primary", use_container_width=True, key="make_vid_v113"):
+        show_caption = st.checkbox("📝 Caption - Jo Likha Wahi", value=True, key="cap_v115")
+    default_vid_text = st.session_state.get(f"text_{vid_lang}", "") or "Asalam O Alaikum! Mehar Mart khalis shahad!"
+    vid_text = st.text_area(f"Text - Yahi bolega - Namaste nahi bolega:", value=default_vid_text[:220], height=110, key="vid_text_v115")
+    vid_speed = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key="vid_speed_v115")
+    if st.button("🎬 VIDEO BANAO - JO LIKHA WAHI", type="primary", use_container_width=True, key="make_vid_v115"):
         if not prod_image: st.error("Image Upload!")
         else:
-            with st.spinner("Video Ban Raha..."):
+            with st.spinner("Video Ban Raha - Jo likha wahi..."):
                 os.makedirs("video", exist_ok=True)
                 from PIL import Image as PILImage
                 img = PILImage.open(prod_image).convert("RGB").resize((1080,1920))
-                img_path = f"video/input_{vid_lang}_v113.jpg"
+                img_path = f"video/input_{vid_lang}_v115.jpg"
                 img.save(img_path)
-                voice_path = f"video/voice_{vid_lang}_v113.mp3"
+                voice_path = f"video/voice_{vid_lang}_v115.mp3"
                 ok_voice = asyncio.run(gen_edge(clean_for_voice(vid_text, vid_lang), vid_voice, vid_speed, voice_path))
                 if ok_voice:
-                    out_path = f"video/MEHAR_{vid_lang}_V113.mp4"
+                    out_path = f"video/MEHAR_{vid_lang}_V115.mp4"
                     if make_scene_clip(img_path, voice_path, out_path, vid_text if show_caption else ""):
                         st.video(out_path)
                         with open(out_path,"rb") as f: st.download_button("Download Video", f, file_name=f"Mehar_{vid_lang}.mp4", mime="video/mp4", type="primary")
 
 with tab3:
-    st.markdown("### 🎭 AI DRAMA - TechPulse Jaisa")
-    char_image = st.file_uploader("📸 Larki Photo (Same Face):", type=["jpg","jpeg","png","webp"], key="char_v113")
+    st.markdown("### 🎭 AI DRAMA")
+    char_image = st.file_uploader("📸 Larki Photo:", type=["jpg","jpeg","png","webp"], key="char_v115")
     if char_image: st.image(char_image, width=180)
-    drama_type = st.selectbox("Story:", ["Mehar Honey Ad Drama - 5 Scene", "TechPulse Sad to Happy"], key="drama_type_v113")
-    if drama_type == "Mehar Honey Ad Drama - 5 Scene":
-        scenes = [
-            {"prompt": "Pakistani girl sitting sad tired in bedroom, casual dress", "text_urdu": "پہلے میں بہت تھکی تھکی رہتی تھی"},
-            {"prompt": "Same girl holding honey jar smiling in mirror, white dress", "text_urdu": "پھر مہر مارٹ کا خالص شہد ملا"},
-            {"prompt": "Same girl drinking honey water on sofa, floral dress happy", "text_urdu": "اب انرجی فل ہے"},
-            {"prompt": "Same girl showing honey jar in kitchen, blue shirt", "text_urdu": "صرف 2975 روپے میں فری ڈلیوری"},
-            {"prompt": "Same girl family selfie with honey jar happy", "text_urdu": "آپ بھی آرڈر کریں"},
-        ]
-    else:
-        scenes = [
-            {"prompt": "Pakistani girl sad in bedroom black hijab", "text_urdu": "یہ کہانی ایک لڑکی کی ہے"},
-            {"prompt": "Same girl in mirror white dress thinking", "text_urdu": "اس نے زندگی بدلنے کا فیصلہ کیا"},
-            {"prompt": "Same girl on university bench floral dress smiling", "text_urdu": "یونیورسٹی میں خوش رہنے لگی"},
-            {"prompt": "Same girl selfie with boy happy", "text_urdu": "دوستی ہوئی"},
-            {"prompt": "Same girl office blue shirt showing phone", "text_urdu": "اگلے دن نیا آغاز"},
-        ]
-    col1,col2 = st.columns(2)
-    with col1:
-        drama_lang = st.selectbox("Drama Lang:", ["URDU","SINDHI"], index=0, key="dlang_v113")
-        drama_voice_key = st.selectbox("Drama Voice:", ["Uzma Larki","Asad Larka"], index=0, key="dvoice_v113")
-        drama_voice = VOICES[drama_lang][drama_voice_key]
-    with col2:
-        drama_speed = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key="dspeed_v113")
-        drama_caption = st.checkbox("Caption", value=True, key="dcap_v113")
-    if st.button("🎬 DRAMA BANAO - 5 Scene", type="primary", use_container_width=True, key="make_drama_v113"):
+    drama_lang = st.selectbox("Drama Lang:", ["URDU","SINDHI"], index=0, key="dlang_v115")
+    drama_voice_key = st.selectbox("Drama Voice:", ["Uzma Larki","Asad Larka"], index=0, key="dvoice_v115")
+    drama_voice = "ur-PK-UzmaNeural" if "Uzma" in drama_voice_key else "ur-PK-AsadNeural"
+    drama_speed = st.select_slider("Speed:", options=["-5%","-15%","+10%"], value="-5%", key="dspeed_v115")
+    drama_caption = st.checkbox("Caption", value=True, key="dcap_v115")
+    scenes_text = []
+    for i in range(3):
+        st.markdown(f"**Scene {i+1}:**")
+        p = st.text_input(f"Scene {i+1} Prompt:", value=f"Same girl holding honey jar happy {i+1}", key=f"sprompt_{i}_v115")
+        t = st.text_input(f"Scene {i+1} Voice - Jo likha wahi bolegi:", value="Asalam O Alaikum! Mehar Mart khalis shahad - Pore Pakistan me free delivery" if i==0 else f"Order karen {i+1}", key=f"stext_{i}_v115")
+        scenes_text.append({"prompt": p, "text_urdu": t})
+    if st.button("🎬 DRAMA BANAO", type="primary", use_container_width=True, key="make_drama_v115"):
         os.makedirs("video/drama", exist_ok=True)
         clip_paths=[]
         seed_base=random.randint(1,99999)
         prog=st.progress(0)
-        for idx, scene in enumerate(scenes):
-            prog.progress(int((idx/len(scenes))*100))
-            img_path = f"video/drama/scene_{idx+1}_v113.jpg"
+        for idx, scene in enumerate(scenes_text):
+            prog.progress(int((idx/len(scenes_text))*100))
+            img_path = f"video/drama/scene_{idx+1}_v115.jpg"
             ok_img = generate_ai_scene(scene['prompt'], img_path, seed_base+idx)
             if not ok_img and char_image:
                 from PIL import Image as PILImage
                 im = PILImage.open(char_image).convert("RGB").resize((1080,1920))
                 im.save(img_path)
-            voice_path = f"video/drama/scene_{idx+1}_v113.mp3"
+            voice_path = f"video/drama/scene_{idx+1}_v115.mp3"
             ok_voice = asyncio.run(gen_edge(clean_for_voice(scene['text_urdu'], drama_lang), drama_voice, drama_speed, voice_path))
             if ok_voice:
-                clip_path = f"video/drama/clip_{idx+1}_v113.mp4"
+                clip_path = f"video/drama/clip_{idx+1}_v115.mp4"
                 if make_scene_clip(img_path, voice_path, clip_path, scene['text_urdu'] if drama_caption else ""):
                     clip_paths.append(clip_path)
         prog.progress(100)
         if clip_paths:
-            final = "video/drama/FINAL_DRAMA_V113.mp4"
+            final = "video/drama/FINAL_DRAMA_V115.mp4"
             if concat_videos(clip_paths, final):
                 st.video(final)
-                with open(final,"rb") as f: st.download_button("DOWNLOAD DRAMA", f, file_name="Mehar_Drama_V113.mp4", mime="video/mp4", type="primary")
+                with open(final,"rb") as f: st.download_button("DOWNLOAD DRAMA", f, file_name="Mehar_Drama_V115.mp4", mime="video/mp4", type="primary")
 
-st.caption("V113 FINAL FIX - Mix Text Bug Fixed - ALL 5 BOX Fixed - Voice V102 Same - Asad Uzma")
+st.caption("V115 - Asalam O Alaikum Fix - Namaste Bug Fixed - Jo Likha Wahi Bolega - Extra Kuch Nahi")
