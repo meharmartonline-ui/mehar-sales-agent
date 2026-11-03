@@ -1,200 +1,863 @@
+
 import streamlit as st
-import os
 import asyncio
-import edge_tts
-from groq import Groq
-from datetime import datetime
+import tempfile
+import os
 import re
+import json
+import subprocess
+import time
 
-st.set_page_config(page_title="MEHAR V102 FIXED - SUPER AGENT", layout="wide", page_icon="🎙️")
+import edge_tts
+import imageio_ffmpeg
+from google.cloud import texttospeech
+from google.oauth2 import service_account
 
-# ===== KEYS =====
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") or (st.secrets.get("GROQ_API_KEY", "") if hasattr(st, 'secrets') else "")
-client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-st.title("🎙️ MEHAR SUPER AGENT V102 - FIXED - 5 BOX - BUG FIXED")
-st.caption("✅ Groq Used | ✅ Time Applied | ✅ Sindhi Verified | ✅ Arabic Fix | ✅ Asalam Language-Specific")
+# ============================================================
+# MEHAR V95 WORLD STUDIO — AUTO LANGUAGE EDITION
+# Existing voices + automatic script detection + safer audio
+# ============================================================
 
-# ===== FIX 4 & 5: FULL ALPHABET FIX + ASALAM LANGUAGE-SPECIFIC =====
-def fix_text_v102_fixed(text, lang):
-    original = text
-    
-    # 1. Arabic 28 Alphabet Fix - Not implemented tha - Ab implemented
-    arabic_fix = {
-        "أ": "ا", "إ": "ا", "آ": "ا", "ة": "ه",
-    }
-    for k,v in arabic_fix.items():
-        text = text.replace(k, v)
-    
-    # 2. Sindhi 52 Alphabet Fix
-    if lang == "SINDHI":
-        # Sindhi specific - Urdu voice use but text fix
-        text = text.replace("ﷲ", "الله")
-        # Sindhi text remains but voice mapping note
-        pass
-    
-    # 3. Urdu 38 Alphabet Fix
-    if lang == "URDU":
-        text = text.replace("ۂ", "ہ")
-    
-    # 4. Hindi 52 Alphabet Fix - Half letters
-    if lang == "HINDI":
-        text = text.replace("0:01", "जीरो जीरो एक") # 0:01 Fix for Swara
-    
-    # 5. LANGUAGE-SPECIFIC ASALAM FIX - Basic nahi, Full
-    if lang == "HINDI":
-        # Hindi me Namaste hatao, Asalam lao
-        text = re.sub(r'नमस्ते', 'अस्सलाम वालेकुम', text)
-        text = re.sub(r'नमस्कार', 'अस्सलाम वालेकुम', text)
-        text = re.sub(r'Namaste|Namaskar', 'Asalam O Alaikum', text, flags=re.I)
-        text = text.replace("भारत", "पाकिस्तान")
-        text = text.replace("Bharat", "Pakistan")
-    elif lang in ["URDU", "SINDHI"]:
-        # Urdu/Sindhi me already Asalam, lekin Bharat fix
-        text = text.replace("Bharat", "Pakistan")
-        text = text.replace("भारत", "پاکستان")
-        text = text.replace("بھارت", "پاکستان")
-    
-    # Common Fixes - All Languages
-    text = text.replace("100%", "100 percent")
-    text = text.replace("100٪", "100 percent")
-    text = text.replace("0:01", "zero zero one" if lang != "HINDI" else "जीरो जीरो एक")
-    
-    return text
+st.set_page_config(
+    page_title="MEHAR V95 - WORLD STUDIO",
+    page_icon="🌍",
+    layout="centered"
+)
 
-# ===== FIX 3: SINDHI VOICES - VERIFIED =====
-VOICES_VERIFIED = {
-    "SINDHI": {
-        "Asad Larka (Sindhi - Verified Closest: ur-PK-AsadApollo)": "ur-PK-AsadApollo",
-        "Uzma Larki (Sindhi - Verified Closest: ur-PK-UzmaNeural)": "ur-PK-UzmaNeural",
-        # Note: Actual sd-PK voice not in Edge-TTS public list as of 2026 - Using Urdu closest - Best match
-    },
-    "URDU": {
-        "Asad Larka (Urdu - Verified)": "ur-PK-AsadApollo",
-        "Uzma Larki (Urdu - Verified)": "ur-PK-UzmaNeural",
-    },
-    "HINDI": {
-        "Madhur Larka (Hindi - Verified)": "hi-IN-MadhurNeural",
-        "Swara Larki (Hindi - Asalam Best - Verified)": "hi-IN-SwaraNeural",
-    },
-    "ENGLISH": {
-        "Guy Larka (Verified)": "en-US-GuyNeural",
-        "Jenny Larki (Verified)": "en-US-JennyNeural",
-    },
-    "ARABIC": {
-        "Hamed Larka (Arabic - 28 Letters Fix - Verified)": "ar-SA-HamedNeural",
-        "Zariyah Larki (Arabic - Verified)": "ar-SA-ZariyahNeural",
-    }
+st.title("MEHAR V95 - WORLD STUDIO 🌍")
+st.success("V95 AUTO LANGUAGE EDITION | Asad + Uzma | Sindhi AI TTS")
+
+# ------------------------------------------------------------
+# VOICE CATALOG — ORIGINAL V95 VOICES PRESERVED
+# ------------------------------------------------------------
+
+URDU_AGE_LABELS = {
+    "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
+    "10 Sal Larka - Asad": "ur-PK-AsadNeural",
+    "20 Sal Larka - Asad": "ur-PK-AsadNeural",
+    "30 Sal Larka - Asad": "ur-PK-AsadNeural",
+    "50 Sal Larka - Asad": "ur-PK-AsadNeural",
+    "60 Sal Larka - Asad": "ur-PK-AsadNeural",
 }
 
-TIME_OPTIONS = {
-    "10 Sec": 30, "15 Sec": 45, "30 Sec": 90, "1 Min": 180, 
-    "2 Min": 360, "5 Min": 800, "10 Min": 1500
+EDGE_VOICES = {
+    "Hindi": {
+        "Female - Swara": "hi-IN-SwaraNeural",
+        "Male - Madhur": "hi-IN-MadhurNeural",
+    },
+    "English": {
+        "Female - Aria": "en-US-AriaNeural",
+        "Male - Guy": "en-US-GuyNeural",
+    },
+    "Arabic": {
+        "Female - Zariyah": "ar-SA-ZariyahNeural",
+        "Male - Hamed": "ar-SA-HamedNeural",
+    },
 }
 
-# ===== FIX 1: GROQ STORY GENERATOR - NOW USED =====
-def generate_story_groq(user_prompt, lang):
-    if not client:
-        return f"DEMO STORY - Groq API key nahi - Is liye demo template: {user_prompt} - Asalam O Alaikum! Mehar Mart ka khalis shehad!"
-    
-    try:
-        system_prompt = f"""
-        You are Mehar Mart story writer. Language: {lang}
-        Rules:
-        - Always use Asalam O Alaikum, never Namaste
-        - Always Pakistan, never Bharat
-        - Always 100 percent, never 100%
-        - Roman Urdu me likho
-        - 4 scenes: Bedroom, Mirror, University, Happy Ending with honey
-        - Fix: 0:01 -> zero zero one
-        """
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            max_tokens=500
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        return f"Groq Error: {e} - Demo story: {user_prompt} - Asalam O Alaikum!"
+LANGUAGE_LABELS = {
+    "Urdu": "🇵🇰 URDU CLEAR - اردو",
+    "Sindhi": "🇵🇰 SINDHI KHALIS - سنڌي",
+    "Hindi": "🇮🇳 HINDI - हिंदी",
+    "English": "🇺🇸 ENGLISH CLEAR",
+    "Arabic": "🇸🇦 ARABIC - عربي",
+}
 
-async def gen_edge_fixed(text, voice, rate, path):
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
+DEFAULT_TEXTS = {
+    "Urdu": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ میں خوش آمدید۔",
+    "Sindhi": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ ۾ ڀليڪار.",
+    "Hindi": "नमस्ते! मेहर मार्ट में आपका स्वागत है।",
+    "English": "Hello friends! Welcome to Mehar Mart.",
+    "Arabic": "السلام عليكم! أهلاً وسهلاً بكم في مهر مارت.",
+}
+
+DURATION_OPTIONS = {
+    "⚡ 15 Sec": 15,
+    "🔥 30 Sec": 30,
+    "🎙️ 1 Min": 60,
+    "⏰ 2 Min": 120,
+    "🚀 10 Min FULL": 600,
+}
+
+ROMAN_URDU_WORDS = {
+    "hai", "hain", "hy", "ho", "tha", "thi", "the",
+    "aap", "ap", "mera", "meri", "mere", "hamara",
+    "hum", "main", "mein", "kya", "kyun", "kaise",
+    "kaisa", "acha", "achha", "bohat", "bahut",
+    "nahi", "nahin", "kar", "karo", "karein",
+    "karen", "kijiye", "chahiye", "liye", "liye",
+    "bhai", "behen", "dost", "salam", "assalam",
+    "khush", "aaj", "kal", "sab", "apna",
+    "apni", "aur", "ke", "ki", "ka", "ko",
+    "se", "par", "mein", "me", "yeh", "ye",
+    "woh", "wo", "mera", "tum", "aapka",
+    "aapki", "zabardast", "shukriya", "meharbani",
+}
+
+SINDHI_UNIQUE = set("ٻڄڏڊڙڱڳڪڻٽٿڀڌڇ")
+
+# ------------------------------------------------------------
+# LANGUAGE AUTO DETECTION
+# ------------------------------------------------------------
+
+def detect_language(text):
+    text = (text or "").strip()
+
+    if not text:
+        return "Urdu"
+
+    # Count script characters
+    counts = {
+        "Sindhi": 0,
+        "Urdu": 0,
+        "Hindi": 0,
+        "Arabic": 0,
+        "Latin": 0,
+    }
+
+    for ch in text:
+        code = ord(ch)
+
+        if 0x0900 <= code <= 0x097F:
+            counts["Hindi"] += 1
+
+        elif ch in SINDHI_UNIQUE:
+            counts["Sindhi"] += 1
+
+        elif 0x0600 <= code <= 0x06FF or 0x0750 <= code <= 0x077F:
+            counts["Urdu"] += 1
+
+        elif ch.isascii() and ch.isalpha():
+            counts["Latin"] += 1
+
+    # Script-based detection
+    if counts["Hindi"] > 0:
+        return "Hindi"
+
+    if counts["Sindhi"] > 0:
+        return "Sindhi"
+
+    if counts["Urdu"] > 0:
+        # Arabic-specific characters help distinguish Arabic.
+        arabic_chars = set("ةىؤئ")
+        if any(ch in arabic_chars for ch in text):
+            return "Arabic"
+        return "Urdu"
+
+    # Roman Urdu detection
+    words = set(re.findall(r"[a-zA-Z]+", text.lower()))
+    matches = len(words.intersection(ROMAN_URDU_WORDS))
+
+    if counts["Latin"] > 0 and matches >= 2:
+        return "Urdu"
+
+    return "English"
+
+
+# ------------------------------------------------------------
+# SESSION STATE
+# ------------------------------------------------------------
+
+if "mehar_v95_script" not in st.session_state:
+    st.session_state.mehar_v95_script = DEFAULT_TEXTS["Urdu"]
+
+if "mehar_v95_audio" not in st.session_state:
+    st.session_state.mehar_v95_audio = None
+
+def clear_script():
+    st.session_state.mehar_v95_script = ""
+    st.session_state.mehar_v95_audio = None
+
+
+# ------------------------------------------------------------
+# SCRIPT INPUT
+# ------------------------------------------------------------
+
+st.subheader("📝 YOUR SCRIPT")
+
+text_input = st.text_area(
+    "Text likhein ya paste karein:",
+    key="mehar_v95_script",
+    height=230,
+    max_chars=18000,
+    help="Urdu, Sindhi, Hindi, Arabic, English ya Roman Urdu."
+)
+
+detected_language = detect_language(text_input)
+
+st.info(
+    f"🔍 Auto-detected language: {detected_language}"
+)
+
+if text_input.strip():
+    st.caption("Copy ke liye neeche text box ke copy icon ko use karein.")
+    st.code(text_input, language=None)
+
+col_copy, col_clear = st.columns(2)
+
+with col_copy:
+    st.button(
+        "📋 COPY TEXT",
+        use_container_width=True,
+        disabled=not bool(text_input.strip()),
+        help="Text box ke copy icon se text copy karein."
+    )
+
+with col_clear:
+    st.button(
+        "🧹 CLEAR TEXT",
+        use_container_width=True,
+        on_click=clear_script
+    )
+
+
+# ------------------------------------------------------------
+# LANGUAGE OVERRIDE — AUTO IS DEFAULT
+# ------------------------------------------------------------
+
+language_options = [
+    "🤖 AUTO DETECT",
+    LANGUAGE_LABELS["Urdu"],
+    LANGUAGE_LABELS["Sindhi"],
+    LANGUAGE_LABELS["Hindi"],
+    LANGUAGE_LABELS["English"],
+    LANGUAGE_LABELS["Arabic"],
+]
+
+selected_language = st.selectbox(
+    "🌍 LANGUAGE MODE:",
+    language_options,
+    index=0
+)
+
+if selected_language == "🤖 AUTO DETECT":
+    language = detected_language
+else:
+    language = next(
+        key for key, value in LANGUAGE_LABELS.items()
+        if value == selected_language
+    )
+
+st.success(f"Selected language: {language}")
+
+
+# ------------------------------------------------------------
+# VOICE SELECTION
+# ------------------------------------------------------------
+
+if language == "Urdu":
+    voice_label = st.selectbox(
+        "🎙️ ASAD / UZMA ORIGINAL V95 PRESETS:",
+        list(URDU_AGE_LABELS.keys()),
+        index=6
+    )
+    voice_name = URDU_AGE_LABELS[voice_label]
+    engine = "edge"
+
+    st.info(
+        "Urdu voice: Asad / Uzma. Age labels are presets only; "
+        "they do not change the actual voice age."
+    )
+
+elif language == "Sindhi":
+    sindhi_voices = {
+        "Female AI Voice - Kore": "Kore",
+        "Male AI Voice - Charon": "Charon",
+    }
+
+    voice_label = st.selectbox(
+        "🎙️ SINDHI VOICE:",
+        list(sindhi_voices.keys())
+    )
+    voice_name = sindhi_voices[voice_label]
+    engine = "gemini_cloud"
+
+    st.info(
+        "Sindhi engine: Google Cloud Gemini-TTS | sd-IN Preview. "
+        "Pakistani Sindhi accent is guided through the voice prompt."
+    )
+
+else:
+    selected_voices = EDGE_VOICES[language]
+
+    voice_label = st.selectbox(
+        "🎙️ SELECT VOICE:",
+        list(selected_voices.keys())
+    )
+    voice_name = selected_voices[voice_label]
+    engine = "edge"
+
+
+# ------------------------------------------------------------
+# DURATION AND SPEECH SETTINGS
+# ------------------------------------------------------------
+
+limit_label = st.selectbox(
+    "⏱️ AUDIO LIMIT:",
+    list(DURATION_OPTIONS.keys()),
+    index=0
+)
+
+MAX_SEC = DURATION_OPTIONS[limit_label]
+MAX_CHARS = MAX_SEC * 30
+
+word_count = len(text_input.split())
+estimated_seconds = word_count / 2.5 if word_count else 0
+
+c1, c2 = st.columns(2)
+c1.metric("Words", word_count)
+c2.metric("Estimated speech", f"{estimated_seconds:.0f} sec")
+
+st.progress(
+    min(estimated_seconds / MAX_SEC, 1.0)
+    if MAX_SEC else 0
+)
+
+if estimated_seconds > MAX_SEC:
+    st.warning(
+        "Script selected duration limit se zyada ho sakta hai. "
+        "Longer duration select karein."
+    )
+
+rate = st.select_slider(
+    "⚡ EDGE SPEECH SPEED:",
+    options=["-15%", "-10%", "-5%", "+0%", "+10%"],
+    value="-5%",
+    disabled=(engine != "edge")
+)
+
+style = st.selectbox(
+    "🎭 SINDHI SPEECH STYLE:",
+    [
+        "Natural, clear, warm Pakistani Sindhi narration",
+        "Energetic commercial advertisement",
+        "Calm and friendly storytelling",
+        "Professional radio announcer",
+    ],
+    disabled=(engine != "gemini_cloud")
+)
+
+st.caption(
+    "Duration estimate hai. Actual audio duration language, pauses "
+    "aur speaking speed par depend karti hai."
+)
+
+
+# ------------------------------------------------------------
+# SAFE TEXT CHUNKING
+# Keep words intact and avoid dropping small words.
+# ------------------------------------------------------------
+
+def split_text_chars(text, max_chars=280):
+    text = (text or "").strip()
+
+    if not text:
+        return []
+
+    words = re.findall(r"\S+", text)
+    chunks = []
+    current = ""
+
+    for word in words:
+        if len(word) > max_chars:
+            raise ValueError(
+                "A single word is longer than the allowed audio chunk."
+            )
+
+        candidate = f"{current} {word}".strip()
+
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = word
+
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
+def split_text_utf8(text, max_bytes=2200):
+    text = (text or "").strip()
+
+    if not text:
+        return []
+
+    words = re.findall(r"\S+", text)
+    chunks = []
+    current = ""
+
+    for word in words:
+        word_size = len(word.encode("utf-8"))
+
+        if word_size > max_bytes:
+            raise ValueError(
+                "A single word is too large for Sindhi TTS."
+            )
+
+        candidate = f"{current} {word}".strip()
+
+        if len(candidate.encode("utf-8")) <= max_bytes:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = word
+
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
+# ------------------------------------------------------------
+# AUDIO JOINING
+# ------------------------------------------------------------
+
+def join_mp3_files(paths, output_path):
+    if not paths:
+        raise RuntimeError("No audio chunks were generated.")
+
+    if len(paths) == 1:
+        with open(paths[0], "rb") as f:
+            return f.read()
+
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    list_path = os.path.join(
+        os.path.dirname(output_path),
+        "concat_list.txt"
+    )
+
+    with open(list_path, "w", encoding="utf-8") as f:
+        for path in paths:
+            safe_path = os.path.abspath(path).replace("\\", "/")
+            safe_path = safe_path.replace("'", "'\\''")
+            f.write(f"file '{safe_path}'\n")
+
+    result = subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", list_path,
+            "-vn",
+            "-c:a", "libmp3lame",
+            "-b:a", "128k",
+            output_path,
+        ],
+        check=True,
+        capture_output=True,
+        timeout=600,
+    )
+
+    if not os.path.exists(output_path):
+        raise RuntimeError("Final audio file was not created.")
+
+    if os.path.getsize(output_path) < 800:
+        raise RuntimeError("Final audio file is empty or incomplete.")
+
+    with open(output_path, "rb") as f:
+        return f.read()
+
+
+# ------------------------------------------------------------
+# EDGE TTS — NO WRONG-LANGUAGE FALLBACK
+# ------------------------------------------------------------
+
+async def edge_chunk(text, voice, speech_rate, path):
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice,
+        rate=speech_rate
+    )
+
     await communicate.save(path)
-    return True
 
-# ===== FIX 2: TIME SELECTION NOW APPLIED =====
-def apply_time_limit(text, time_key):
-    max_words = TIME_OPTIONS.get(time_key, 180)
-    words = text.split()
-    if len(words) > max_words:
-        trimmed = " ".join(words[:max_words])
-        return trimmed, True, len(words), max_words
-    return text, False, len(words), max_words
+    if not os.path.exists(path) or os.path.getsize(path) < 800:
+        raise RuntimeError("Edge TTS returned an empty audio chunk.")
 
-# UI
-st.divider()
-st.subheader("🔧 FIXED BUGS REPORT - Cloud Audit")
 
-col_a, col_b, col_c, col_d = st.columns(4)
-col_a.metric("Groq", "Connected & USED ✅", "Story function added")
-col_b.metric("Time Selection", "UI + APPLIED ✅", "Word trim active")
-col_c.metric("Sindhi Voices", "VERIFY DONE ✅", "ur-PK closest - noted")
-col_d.metric("Arabic Fix", "IMPLEMENTED ✅", "28 letters fix")
+def generate_edge_audio(text, voice, speech_rate):
+    chunks = split_text_chars(text, 280)
 
-# Story Generator Section - Groq Now Used
-st.divider()
-st.header("📖 STORY GENERATOR - GROQ NOW USED - FIX 1")
-story_input = st.text_area("Story Idea (Roman Urdu):", "Larki raat me phone use karti hai, subah late hoti hai, baap dantega, phir Mehar Mart shehad se theek", height=80)
-story_lang = st.selectbox("Story Language:", ["URDU", "SINDHI", "HINDI", "ENGLISH", "ARABIC"])
-if st.button("Generate Story via Groq - Fixed"):
-    story = generate_story_groq(story_input, story_lang)
-    st.text_area("Generated Story:", story, height=200)
-    st.success("✅ Groq client ab use ho raha hai - Bug Fixed!")
+    if not chunks:
+        raise ValueError("Please enter your script.")
 
-# 5 Box System - With All Fixes
-for box_num in range(1, 6):
+    progress = st.progress(0)
+    status = st.empty()
+
+    with tempfile.TemporaryDirectory(
+        prefix="mehar_v95_edge_"
+    ) as folder:
+
+        audio_paths = []
+
+        for i, chunk in enumerate(chunks):
+            chunk_path = os.path.join(
+                folder,
+                f"edge_{i:04d}.mp3"
+            )
+
+            success = False
+            last_error = None
+
+            for attempt in range(3):
+                try:
+                    if os.path.exists(chunk_path):
+                        os.remove(chunk_path)
+
+                    asyncio.run(
+                        edge_chunk(
+                            chunk,
+                            voice,
+                            speech_rate,
+                            chunk_path
+                        )
+                    )
+
+                    success = True
+                    break
+
+                except Exception as exc:
+                    last_error = exc
+                    time.sleep(1.2 * (attempt + 1))
+
+            if not success:
+                raise RuntimeError(
+                    f"Voice generation failed at chunk {i + 1} "
+                    f"of {len(chunks)}. No chunk was skipped. "
+                    f"Error: {last_error}"
+                )
+
+            audio_paths.append(chunk_path)
+
+            progress.progress((i + 1) / len(chunks))
+            status.write(
+                f"Generating audio: {i + 1}/{len(chunks)}"
+            )
+
+        final_path = os.path.join(
+            folder,
+            "MEHAR_V95_FINAL.mp3"
+        )
+
+        return join_mp3_files(audio_paths, final_path)
+
+
+# ------------------------------------------------------------
+# GOOGLE CLOUD GEMINI TTS — SINDHI
+# ------------------------------------------------------------
+
+def get_cloud_tts_client():
+    project_id = st.secrets.get(
+        "GOOGLE_CLOUD_PROJECT",
+        ""
+    )
+
+    service_info = st.secrets.get(
+        "GOOGLE_CLOUD_SERVICE_ACCOUNT",
+        None
+    )
+
+    if not project_id or not service_info:
+        raise RuntimeError(
+            "Sindhi setup missing. Streamlit Cloud > "
+            "App settings > Secrets mein "
+            "GOOGLE_CLOUD_PROJECT aur "
+            "GOOGLE_CLOUD_SERVICE_ACCOUNT add karein."
+        )
+
+    if isinstance(service_info, str):
+        service_info = json.loads(service_info)
+
+    credentials = (
+        service_account.Credentials.from_service_account_info(
+            dict(service_info),
+            scopes=[
+                "https://www.googleapis.com/auth/cloud-platform"
+            ]
+        )
+    )
+
+    return texttospeech.TextToSpeechClient(
+        credentials=credentials
+    )
+
+
+def generate_sindhi_audio(text, voice):
+    chunks = split_text_utf8(text, 2200)
+
+    if not chunks:
+        raise ValueError("Sindhi script enter karein.")
+
+    client = get_cloud_tts_client()
+
+    progress = st.progress(0)
+    status = st.empty()
+
+    prompt = (
+        "Speak the supplied text in clear, natural Sindhi. "
+        "Use a fluent Pakistani Sindhi conversational accent "
+        "as naturally as possible. Keep Sindhi pronunciation clear. "
+        "Read the text exactly as supplied. Do not translate it. "
+        "Do not summarize, paraphrase, repeat, add or omit words. "
+        "Preserve proper names, including Pakistan. "
+        "Pronounce every written word and short word clearly. "
+        f"Speaking style: {style}."
+    )
+
+    with tempfile.TemporaryDirectory(
+        prefix="mehar_v95_sindhi_"
+    ) as folder:
+
+        audio_paths = []
+
+        for i, chunk in enumerate(chunks):
+            chunk_path = os.path.join(
+                folder,
+                f"sindhi_{i:04d}.mp3"
+            )
+
+            last_error = None
+            success = False
+
+            for attempt in range(3):
+                try:
+                    synthesis_input = (
+                        texttospeech.SynthesisInput(
+                            text=chunk,
+                            prompt=prompt
+                        )
+                    )
+
+                    voice_params = (
+                        texttospeech.VoiceSelectionParams(
+                            language_code="sd-IN",
+                            name=voice,
+                            model_name="gemini-3.1-flash-tts-preview"
+                        )
+                    )
+
+                    audio_config = (
+                        texttospeech.AudioConfig(
+                            audio_encoding=(
+                                texttospeech.AudioEncoding.MP3
+                            )
+                        )
+                    )
+
+                    response = client.synthesize_speech(
+                        input=synthesis_input,
+                        voice=voice_params,
+                        audio_config=audio_config
+                    )
+
+                    if not response.audio_content:
+                        raise RuntimeError(
+                            "Google returned empty audio."
+                        )
+
+                    with open(chunk_path, "wb") as f:
+                        f.write(response.audio_content)
+
+                    if os.path.getsize(chunk_path) < 800:
+                        raise RuntimeError(
+                            "Sindhi audio chunk is too small."
+                        )
+
+                    success = True
+                    break
+
+                except Exception as exc:
+                    last_error = exc
+                    time.sleep(1.5 * (attempt + 1))
+
+            if not success:
+                raise RuntimeError(
+                    f"Sindhi audio failed at chunk {i + 1} "
+                    f"of {len(chunks)}. No chunk was skipped. "
+                    f"Error: {last_error}"
+                )
+
+            audio_paths.append(chunk_path)
+
+            progress.progress((i + 1) / len(chunks))
+            status.write(
+                f"Sindhi audio: {i + 1}/{len(chunks)}"
+            )
+
+        final_path = os.path.join(
+            folder,
+            "MEHAR_KHALIS_SINDHI_FINAL.mp3"
+        )
+
+        return join_mp3_files(audio_paths, final_path)
+
+
+# ------------------------------------------------------------
+# TEST VOICE
+# ------------------------------------------------------------
+
+PREVIEW_TEXTS = {
+    "Urdu": "السلام علیکم! یہ مہر مارٹ وائس ٹیسٹ ہے۔",
+    "Sindhi": "السلام عليڪم! هي مهر مارٽ جو سنڌي آواز ٽيسٽ آهي.",
+    "Hindi": "नमस्ते! यह मेहर मार्ट का वॉइस टेस्ट है।",
+    "English": "Hello! This is the Mehar Mart voice test.",
+    "Arabic": "السلام عليكم! هذا اختبار صوت مهر مارت.",
+}
+
+if st.button(
+    "🔊 TEST VOICE",
+    use_container_width=True
+):
+    try:
+        with st.spinner("Voice preview generating..."):
+            if engine == "gemini_cloud":
+                preview_bytes = generate_sindhi_audio(
+                    PREVIEW_TEXTS["Sindhi"],
+                    voice_name
+                )
+            else:
+                preview_bytes = generate_edge_audio(
+                    PREVIEW_TEXTS[language],
+                    voice_name,
+                    rate
+                )
+
+        st.audio(preview_bytes, format="audio/mpeg")
+        st.success("Voice preview ready.")
+
+    except Exception as exc:
+        st.error(f"Preview error: {exc}")
+
+
+# ------------------------------------------------------------
+# GENERATE AUDIO
+# ------------------------------------------------------------
+
+if st.button(
+    f"🎙️ GENERATE {language.upper()} VOICE",
+    type="primary",
+    use_container_width=True
+):
+
+    if not text_input.strip():
+        st.error("Please enter your script.")
+
+    elif len(text_input) > MAX_CHARS:
+        st.error(
+            f"Selected duration limit allows approximately "
+            f"{MAX_CHARS} characters. Please choose a longer duration."
+        )
+
+    elif estimated_seconds > MAX_SEC:
+        st.error(
+            "Script selected duration limit se zyada hai. "
+            "Longer duration choose karein."
+        )
+
+    else:
+        try:
+            with st.spinner(
+                f"{language} | {voice_label} | Audio generating..."
+            ):
+
+                if engine == "gemini_cloud":
+                    audio_bytes = generate_sindhi_audio(
+                        text_input,
+                        voice_name
+                    )
+                else:
+                    audio_bytes = generate_edge_audio(
+                        text_input,
+                        voice_name,
+                        rate
+                    )
+
+            st.session_state["mehar_v95_audio"] = audio_bytes
+            st.session_state["mehar_v95_voice"] = voice_label
+            st.session_state["mehar_v95_language"] = language
+
+            st.balloons()
+            st.success(
+                "✅ AUDIO READY! No failed chunk was silently skipped."
+            )
+
+        except Exception as exc:
+            st.session_state["mehar_v95_audio"] = None
+            st.error(f"Generation error: {exc}")
+
+
+# ------------------------------------------------------------
+# FINAL AUDIO OUTPUT
+# ------------------------------------------------------------
+
+if st.session_state.get("mehar_v95_audio"):
     st.divider()
-    st.subheader(f"📦 BOX {box_num} - FIXED VERSION")
-    col1, col2, col3 = st.columns([2,1,1])
-    with col1:
-        lang = st.selectbox(f"Language BOX {box_num}:", list(VOICES_VERIFIED.keys()), key=f"lang_fix_{box_num}")
-        voice_name = st.selectbox(f"Voice BOX {box_num}:", list(VOICES_VERIFIED[lang].keys()), key=f"voice_fix_{box_num}")
-        text = st.text_area(f"Text BOX {box_num} - Jo Likha Wahi:", f"Asalam O Alaikum! Box {box_num} - Mehar Mart - 100 percent khalis - 0:01 time pe - Namaste nahi!", height=120, key=f"text_fix_{box_num}")
-        # Preview fixed text
-        preview_fixed = fix_text_v102_fixed(text, lang)
-        if preview_fixed != text:
-            st.info(f"Fixed Preview ({lang}): {preview_fixed[:100]}...")
-    with col2:
-        time_sel = st.selectbox(f"Time BOX {box_num} - NOW APPLIED:", list(TIME_OPTIONS.keys()), key=f"time_fix_{box_num}")
-        speed = st.slider(f"Speed BOX {box_num} (-5% Fix):", -20, 20, -5, key=f"speed_fix_{box_num}")
-        rate_str = f"{speed:+d}%"
-        st.caption(f"Max Words for {time_sel}: {TIME_OPTIONS[time_sel]}")
-        # Apply time limit logic
-        trimmed, is_trimmed, orig_len, max_len = apply_time_limit(text, time_sel)
-        if is_trimmed:
-            st.warning(f"Trimmed: {orig_len} -> {max_len} words for {time_sel}")
-    with col3:
-        st.write(f"Voice ID: {VOICES_VERIFIED[lang][voice_name]}")
-        if lang == "SINDHI":
-            st.caption("⚠️ Note: sd-PK not in Edge public - Using ur-PK closest - Verified")
-        if st.button(f"🎙️ Convert BOX {box_num} - Fixed", key=f"btn_fix_{box_num}", type="primary"):
-            vcode = VOICES_VERIFIED[lang][voice_name]
-            # Fix 4 & 5 Applied
-            fixed_text = fix_text_v102_fixed(text, lang)
-            # Fix 2 Applied
-            final_text, _, _, _ = apply_time_limit(fixed_text, time_sel)
-            fp = f"box_{box_num}_fixed_{datetime.now().strftime('%H%M%S')}.mp3"
-            ok = asyncio.run(gen_edge_fixed(final_text, vcode, rate_str, fp))
-            if ok:
-                st.success(f"BOX {box_num} Fixed Done!")
-                st.audio(fp)
+    st.subheader("🎧 FINAL AUDIO")
 
-# Master
+    audio_bytes = st.session_state["mehar_v95_audio"]
+
+    safe_voice = re.sub(
+        r"[^A-Za-z0-9_-]+",
+        "_",
+        st.session_state.get(
+            "mehar_v95_voice",
+            "MEHAR_VOICE"
+        )
+    )
+
+    safe_language = st.session_state.get(
+        "mehar_v95_language",
+        "Audio"
+    )
+
+    st.audio(
+        audio_bytes,
+        format="audio/mpeg"
+    )
+
+    st.download_button(
+        "📥 DOWNLOAD MP3",
+        data=audio_bytes,
+        file_name=f"MEHAR_V95_{safe_language}_{safe_voice}.mp3",
+        mime="audio/mpeg",
+        use_container_width=True
+    )
+
+    st.download_button(
+        "📝 DOWNLOAD SCRIPT TXT",
+        data=st.session_state[
+            "mehar_v95_script"
+        ].encode("utf-8"),
+        file_name="MEHAR_V95_SCRIPT.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
+
+
+# ------------------------------------------------------------
+# FOOTER
+# ------------------------------------------------------------
+
 st.divider()
-if st.button("🚀 MASTER CONVERT - All Fixed - V102 Bugs Fixed", type="primary", use_container_width=True):
-    st.success("All 5 boxes with fixed code will convert - Groq used, Time applied, Sindhi verified, Arabic fixed, Asalam language-specific!")
 
-st.caption("V102 FIXED - All Cloud Audit Bugs Fixed - Ready for V103 Demo Branch - V102 SAFE")
+st.caption(
+    "MEHAR V95 WORLD STUDIO | Auto Language Detection | "
+    "Urdu Asad + Uzma | Sindhi Gemini-TTS | "
+    "Hindi | English | Arabic"
+)
+
+st.caption(
+    "Note: Auto-detection is best-effort. Roman Urdu pronunciation "
+    "depends on the selected Urdu voice. Sindhi sd-IN is Preview; "
+    "pronunciation should be tested with native Sindhi speakers."
+)
