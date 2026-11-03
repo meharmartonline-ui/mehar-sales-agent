@@ -1,92 +1,118 @@
 import streamlit as st
-import asyncio
-import edge_tts
+import asyncio, edge_tts, time, json
 
-# --- FREE TRANSLATOR - NO API KEY NEEDED ---
-try:
-    from deep_translator import GoogleTranslator
-    HAS_TRANSLATOR = True
-except:
-    HAS_TRANSLATOR = False
-    st.error("deep_translator install karo: pip install deep-translator")
+st.set_page_config(page_title="MEHAR V105 FINAL", layout="centered")
+st.title("MEHAR V105 - FINAL FIXED")
+st.success("✅ V105 - 1 Request Translation - No Rate Limit")
 
-st.set_page_config(page_title="MEHAR V104 FINAL FIXED", layout="centered")
-st.title("Asalam - V104 FINAL - Translation Fixed")
-st.success("✅ V104 - Free Translation - No Groq Needed")
+# --- GROQ SETUP ---
+import os
+from groq import Groq
+groq_key = st.secrets.get("GROQ_API_KEY") if hasattr(st, 'secrets') else os.getenv("GROQ_API_KEY")
+client = Groq(api_key=groq_key) if groq_key else None
+if client:
+    st.success("✅ Groq Connected - Translation Pakka")
+else:
+    st.error("Groq Key missing - Secrets me dalo")
 
-for k in ['ta_sindhi_text','ta_urdu_text','ta_hindi_text','ta_english_text','ta_arabic_text','master']:
+for k in ['sindhi_box','urdu_box','hindi_box','english_box','arabic_box','master_box']:
     if k not in st.session_state:
         st.session_state[k] = ""
 
-def translate_free(text, target_code):
-    """Free Google Translator - Mehar Mart kabhi nahi ayega"""
-    if not text.strip() or not HAS_TRANSLATOR:
-        return text
+def translate_all_in_one(text):
+    """1 request me 4 zaban - Rate limit khatam"""
+    if not client or not text.strip():
+        return None
     try:
-        # target_code: sd=Sindhi, ur=Urdu, hi=Hindi, en=English, ar=Arabic
-        translated = GoogleTranslator(source='auto', target=target_code).translate(text)
-        return translated
+        prompt = f"""
+        You are translator. Translate this Urdu story into 4 languages.
+        Story: {text}
+        
+        Return ONLY valid JSON like this, no extra text:
+        {{
+          "sindhi": "translation in Sindhi Arabic script (سنڌي)",
+          "hindi": "translation in Hindi Devanagari (हिंदी)",
+          "english": "translation in English",
+          "arabic": "translation in Arabic (العربية)"
+        }}
+        Rules: Keep THE LAST PROMISE as is. Never add Mehar Mart or honey ads.
+        """
+        r = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role":"system","content":"You are a JSON translator. Only return JSON."},
+                {"role":"user","content":prompt}
+            ],
+            temperature=0.2,
+            max_tokens=2000
+        )
+        data = json.loads(r.choices[0].message.content.strip())
+        return data
     except Exception as e:
-        st.error(f"Translate error {target_code}: {e}")
-        return text
+        st.error(f"Groq Error: {e}")
+        return None
 
-# --- MASTER ---
-master = st.text_area("📝 MASTER PROMPT (Urdu me likho):", height=160, key="master", placeholder="ہر گاؤں کی ایک کہانی ہوتی ہے...")
+master = st.text_area("📝 MASTER PROMPT (Urdu me likho):", height=180, key="master_box", placeholder="ہر گاؤں کی ایک کہانی...")
 
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🔄 ALL 5 BOX BHARO - TRANSLATE", type="primary", use_container_width=True):
+c1,c2 = st.columns(2)
+with c1:
+    if st.button("🔄 ALL 5 BOX BHARO - 1 CLICK", type="primary", use_container_width=True):
         if not master.strip():
-            st.warning("Pehle likho Bhai!")
+            st.warning("Pehle likho!")
+        elif not client:
+            st.error("Groq Key nahi hai!")
         else:
-            with st.spinner("Translate ho raha hai..."):
-                # FIX: Har box ko uski zaban me translate karo
-                st.session_state['ta_sindhi_text'] = translate_free(master, 'sd')  # Sindhi
-                st.session_state['ta_urdu_text'] = master  # Urdu - same
-                st.session_state['ta_hindi_text'] = translate_free(master, 'hi')  # Hindi
-                st.session_state['ta_english_text'] = translate_free(master, 'en')  # English
-                st.session_state['ta_arabic_text'] = translate_free(master, 'ar')  # Arabic
-                st.success("✅ Ho Gaya! Ab har box me alag zaban!")
-                st.balloons()
-with col2:
+            with st.spinner("1 request me 4 zaban translate ho rahi..."):
+                result = translate_all_in_one(master)
+                if result:
+                    st.session_state['sindhi_box'] = result.get('sindhi', master)
+                    st.session_state['urdu_box'] = master
+                    st.session_state['hindi_box'] = result.get('hindi', master)
+                    st.session_state['english_box'] = result.get('english', master)
+                    st.session_state['arabic_box'] = result.get('arabic', master)
+                    st.success("✅ Ho Gaya! Ab har box me alag zaban check karo!")
+                    st.balloons()
+                else:
+                    # Fallback - Jo Likha Wahi
+                    for k in ['sindhi_box','urdu_box','hindi_box','english_box','arabic_box']:
+                        st.session_state[k] = master
+                    st.warning("Groq fail - Same text copy kiya")
+with c2:
     if st.button("🗑️ CLEAR", use_container_width=True):
-        for k in st.session_state.keys():
+        for k in ['sindhi_box','urdu_box','hindi_box','english_box','arabic_box','master_box']:
             st.session_state[k] = ""
         st.rerun()
 
-# --- REQUIREMENTS.TXT ME YE ADD KARNA ---
-# streamlit
-# edge-tts
-# deep-translator
-
+# --- VOICES - LARKA LARKI FIX ---
 VOICES = {
-    "sindhi": {"Asad Larka (10-60)": "ur-PK-AsadNeural", "Uzma Larki (10-60)": "ur-PK-UzmaNeural"},
-    "urdu": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
-    "hindi": {"Madhur Larka": "hi-IN-MadhurNeural", "Swara Larki": "hi-IN-SwaraNeural"},
-    "english": {"Guy Larka": "en-US-GuyNeural", "Jenny Larki": "en-US-JennyNeural"},
-    "arabic": {"Hamed Larka": "ar-SA-HamedNeural", "Zariyah Larki": "ar-SA-ZariyahNeural"}
+    "sindhi_box": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
+    "urdu_box": {"Asad Larka": "ur-PK-AsadNeural", "Uzma Larki": "ur-PK-UzmaNeural"},
+    "hindi_box": {"Madhur Larka": "hi-IN-MadhurNeural", "Swara Larki": "hi-IN-SwaraNeural"},
+    "english_box": {"Guy Larka": "en-US-GuyNeural", "Jenny Larki": "en-US-JennyNeural"},
+    "arabic_box": {"Hamed Larka": "ar-SA-HamedNeural", "Zariyah Larki": "ar-SA-ZariyahNeural"},
 }
+async def make_voice(text, voice, speed, fname):
+    await edge_tts.Communicate(text, voice, rate=f"{speed:+d}%").save(fname)
 
-async def make_voice(text, voice, speed, filename):
-    await edge_tts.Communicate(text, voice, rate=f"{speed:+d}%").save(filename)
-
-def render_box(box_key, flag, voice_dict):
-    with st.expander(f"✅ {flag} - {len(st.session_state.get(box_key,''))} chars", expanded=True):
-        st.selectbox("Time:", ["60 Second"], key=f"time_{box_key}")
-        sel = st.selectbox("Voice (Larka/Larki):", list(voice_dict.keys()), key=f"v_{box_key}")
-        st.text_area("Text:", height=140, key=box_key, max_chars=840)
-        speed = st.slider("Speed:", -20, 20, -5, key=f"spd_{box_key}")
-        if st.button(f"🎙️ Voice Banao - {sel}", key=f"b_{box_key}", use_container_width=True):
-            txt = st.session_state.get(box_key,"")
+def render_box(key, title):
+    v_map = VOICES[key]
+    count = len(st.session_state.get(key,""))
+    with st.expander(f"✅ {title} - {count} chars", expanded=True):
+        st.selectbox("Time:", ["60 Second"], key=f"t_{key}")
+        sel = st.selectbox("Voice (Larka/Larki):", list(v_map.keys()), key=f"v_{key}")
+        st.text_area("Text:", height=160, key=key, max_chars=840)
+        spd = st.slider("Speed:", -20, 20, -5, key=f"s_{key}")
+        if st.button(f"🎙️ Voice Banao - {sel}", key=f"b_{key}", use_container_width=True):
+            txt = st.session_state.get(key,"")
             if txt.strip():
-                fn = f"/tmp/{box_key}.mp3"
-                asyncio.run(make_voice(txt, voice_dict[sel], speed, fn))
+                fn = f"/tmp/{key}.mp3"
+                asyncio.run(make_voice(txt, v_map[sel], spd, fn))
                 st.audio(fn)
                 with open(fn,"rb") as f:
-                    st.download_button("⬇️ Download", f, file_name=f"{box_key}.mp3", key=f"dl_{box_key}")
+                    st.download_button("⬇️ Download", f, file_name=f"{key}.mp3", key=f"dl_{key}")
 
-render_box('ta_sindhi_text', '🇵🇰 SINDHI BOX', VOICES["sindhi"])
-render_box('ta_urdu_text', '🇵🇰 URDU BOX', VOICES["urdu"])
-render_box('ta_hindi_text', '🇮🇳 HINDI BOX', VOICES["hindi"])
-render_box('ta_english_text', '🇬🇧 ENGLISH BOX', VOICES["english"])
-render_box('ta_arabic_text', '🇸🇦 ARABIC BOX', VOICES["arabic"])
+render_box('sindhi_box','🇵🇰 SINDHI BOX')
+render_box('urdu_box','🇵🇰 URDU BOX')
+render_box('hindi_box','🇮🇳 HINDI BOX')
+render_box('english_box','🇬🇧 ENGLISH BOX')
+render_box('arabic_box','🇸🇦 ARABIC BOX')
