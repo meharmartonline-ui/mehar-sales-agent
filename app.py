@@ -1,863 +1,502 @@
+# MEHAR V103 - WORLD STUDIO HYBRID
+# Stable language routing, dedicated voices, chunk retries, MP3/WAV, optional music.
+# Groq is deliberately NOT used as a TTS engine. Keep API keys in Streamlit Secrets.
 
-import streamlit as st
 import asyncio
-import tempfile
 import os
 import re
-import json
 import subprocess
+import tempfile
 import time
+from pathlib import Path
 
+import streamlit as st
 import edge_tts
 import imageio_ffmpeg
-from google.cloud import texttospeech
-from google.oauth2 import service_account
 
+try:
+    from gtts import gTTS
+except Exception:
+    gTTS = None
 
-# ============================================================
-# MEHAR V95 WORLD STUDIO — AUTO LANGUAGE EDITION
-# Existing voices + automatic script detection + safer audio
-# ============================================================
+try:
+    from google.cloud import texttospeech
+    from google.oauth2 import service_account
+except Exception:
+    texttospeech = None
+    service_account = None
+
 
 st.set_page_config(
-    page_title="MEHAR V95 - WORLD STUDIO",
+    page_title="MEHAR V103 - WORLD STUDIO",
     page_icon="🌍",
-    layout="centered"
+    layout="centered",
 )
 
-st.title("MEHAR V95 - WORLD STUDIO 🌍")
-st.success("V95 AUTO LANGUAGE EDITION | Asad + Uzma | Sindhi AI TTS")
+st.title("MEHAR V103 - WORLD STUDIO 🌍")
+st.caption("AUTO LANGUAGE • DEDICATED VOICES • CHUNK RETRY • MP3 + WAV")
 
-# ------------------------------------------------------------
-# VOICE CATALOG — ORIGINAL V95 VOICES PRESERVED
-# ------------------------------------------------------------
-
-URDU_AGE_LABELS = {
-    "10 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    "20 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    "30 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    "50 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    "60 Sal Larki - Uzma": "ur-PK-UzmaNeural",
-    "10 Sal Larka - Asad": "ur-PK-AsadNeural",
-    "20 Sal Larka - Asad": "ur-PK-AsadNeural",
-    "30 Sal Larka - Asad": "ur-PK-AsadNeural",
-    "50 Sal Larka - Asad": "ur-PK-AsadNeural",
-    "60 Sal Larka - Asad": "ur-PK-AsadNeural",
-}
-
-EDGE_VOICES = {
+# ---------------------------------------------------------------------
+# Voice catalogue. Voice names are fixed to their language; no cross-
+# language fallback is ever attempted.
+# ---------------------------------------------------------------------
+LANGUAGES = {
+    "Urdu": {
+        "male": ("Asad", "ur-PK-AsadNeural"),
+        "female": ("Uzma", "ur-PK-UzmaNeural"),
+        "gtts": "ur",
+    },
     "Hindi": {
-        "Female - Swara": "hi-IN-SwaraNeural",
-        "Male - Madhur": "hi-IN-MadhurNeural",
+        "male": ("Madhur", "hi-IN-MadhurNeural"),
+        "female": ("Swara", "hi-IN-SwaraNeural"),
+        "gtts": "hi",
     },
     "English": {
-        "Female - Aria": "en-US-AriaNeural",
-        "Male - Guy": "en-US-GuyNeural",
+        "male": ("Guy", "en-US-GuyNeural"),
+        "female": ("Aria", "en-US-AriaNeural"),
+        "gtts": "en",
     },
     "Arabic": {
-        "Female - Zariyah": "ar-SA-ZariyahNeural",
-        "Male - Hamed": "ar-SA-HamedNeural",
+        "male": ("Hamed", "ar-SA-HamedNeural"),
+        "female": ("Zariyah", "ar-SA-ZariyahNeural"),
+        "gtts": "ar",
+    },
+    "Sindhi": {
+        "male": ("Charon (Google Cloud)", "Charon"),
+        "female": ("Kore (Google Cloud)", "Kore"),
+        "gtts": None,
     },
 }
 
-LANGUAGE_LABELS = {
-    "Urdu": "🇵🇰 URDU CLEAR - اردو",
-    "Sindhi": "🇵🇰 SINDHI KHALIS - سنڌي",
-    "Hindi": "🇮🇳 HINDI - हिंदी",
-    "English": "🇺🇸 ENGLISH CLEAR",
-    "Arabic": "🇸🇦 ARABIC - عربي",
-}
+# Detection is script-first. Urdu and Arabic share the Arabic script, so
+# vocabulary markers are used; ambiguous text requires user confirmation.
+URDU_MARKERS = set("""
+ہے ہیں تھا تھی تھے ہوں ہو کیا یہ وہ میں ہم آپ تم سے کو کا کی کے پر
+اور لیکن نہیں ایک کہ بھی ساتھ لیے والا والی بہت میرے ہماری آپکا
+""".split())
+ARABIC_MARKERS = set("""
+هذا هذه ذلك تلك الذي التي الذين نحن أنا أنت أنتم هو هي هم في من إلى
+على عن مع كان كانت يكون ليس لا نعم مرحبا السلام عليكم أهلا كيف لماذا
+""".split())
+SINDHI_MARKERS = set("آهي آهيون آھيون ڇا ڪهڙو ڪهڙي منهنجو منهنجي اوهان توهان سنڌي".split())
+SINDHI_CHARS = set("ٻ ڄ ڳ ڱ ڦ ڄ ڏ ڊ ٽ ٺ ٿ ڌ ڇ ڙ ڻ ڪ")
+DEVANAGARI = re.compile(r"[\u0900-\u097F]")
+ARABIC_SCRIPT = re.compile(r"[\u0600-\u06FF\u0750-\u077F]")
+LATIN = re.compile(r"[A-Za-z]")
 
-DEFAULT_TEXTS = {
-    "Urdu": "السلام علیکم! میرے پیارے بھائیوں اور بہنوں! مہر مارٹ میں خوش آمدید۔",
-    "Sindhi": "السلام عليڪم! منهنجا پيارا ڀائرو ۽ ڀينرون! مهر مارٽ ۾ ڀليڪار.",
-    "Hindi": "नमस्ते! मेहर मार्ट में आपका स्वागत है।",
-    "English": "Hello friends! Welcome to Mehar Mart.",
-    "Arabic": "السلام عليكم! أهلاً وسهلاً بكم في مهر مارت.",
-}
 
-DURATION_OPTIONS = {
-    "⚡ 15 Sec": 15,
-    "🔥 30 Sec": 30,
-    "🎙️ 1 Min": 60,
-    "⏰ 2 Min": 120,
-    "🚀 10 Min FULL": 600,
-}
+def detect_language(text: str):
+    """Return (language, confidence, reason); None means safely ambiguous."""
+    s = text.strip()
+    if not s:
+        return None, 0.0, "No text"
+    if DEVANAGARI.search(s):
+        return "Hindi", 0.99, "Devanagari script"
+    if any(ch in SINDHI_CHARS for ch in s):
+        return "Sindhi", 0.96, "Sindhi-specific characters"
+    words = set(re.findall(r"\w+", s.lower(), flags=re.UNICODE))
+    urdu_hits = len(words & URDU_MARKERS)
+    arabic_hits = len(words & ARABIC_MARKERS)
+    sindhi_hits = len(words & SINDHI_MARKERS)
+    if sindhi_hits:
+        return "Sindhi", min(0.96, 0.72 + sindhi_hits * 0.08), "Sindhi vocabulary"
+    if ARABIC_SCRIPT.search(s):
+        if urdu_hits > arabic_hits:
+            return "Urdu", min(0.96, 0.72 + (urdu_hits-arabic_hits) * 0.06), "Urdu vocabulary"
+        if arabic_hits > urdu_hits:
+            return "Arabic", min(0.96, 0.72 + (arabic_hits-urdu_hits) * 0.06), "Arabic vocabulary"
+        return None, 0.45, "Urdu and Arabic both use Arabic script; text is ambiguous"
+    if LATIN.search(s):
+        # Roman Urdu common words; otherwise use English.
+        roman_urdu = set("hai hain hy tha thi thay kya kahan mera meri ap aur nahi nahin bhai acha achi".split())
+        hits = len(words & roman_urdu)
+        if hits >= 2:
+            return "Urdu", min(0.92, 0.65 + hits * 0.07), "Roman Urdu vocabulary"
+        return "English", 0.90, "Latin alphabet"
+    return None, 0.0, "Could not identify the script"
 
-ROMAN_URDU_WORDS = {
-    "hai", "hain", "hy", "ho", "tha", "thi", "the",
-    "aap", "ap", "mera", "meri", "mere", "hamara",
-    "hum", "main", "mein", "kya", "kyun", "kaise",
-    "kaisa", "acha", "achha", "bohat", "bahut",
-    "nahi", "nahin", "kar", "karo", "karein",
-    "karen", "kijiye", "chahiye", "liye", "liye",
-    "bhai", "behen", "dost", "salam", "assalam",
-    "khush", "aaj", "kal", "sab", "apna",
-    "apni", "aur", "ke", "ki", "ka", "ko",
-    "se", "par", "mein", "me", "yeh", "ye",
-    "woh", "wo", "mera", "tum", "aapka",
-    "aapki", "zabardast", "shukriya", "meharbani",
-}
 
-SINDHI_UNIQUE = set("ٻڄڏڊڙڱڳڪڻٽٿڀڌڇ")
-
-# ------------------------------------------------------------
-# LANGUAGE AUTO DETECTION
-# ------------------------------------------------------------
-
-def detect_language(text):
-    text = (text or "").strip()
-
+def split_text(text, max_chars=240):
+    text = re.sub(r"\s+", " ", text).strip()
     if not text:
-        return "Urdu"
-
-    # Count script characters
-    counts = {
-        "Sindhi": 0,
-        "Urdu": 0,
-        "Hindi": 0,
-        "Arabic": 0,
-        "Latin": 0,
-    }
-
-    for ch in text:
-        code = ord(ch)
-
-        if 0x0900 <= code <= 0x097F:
-            counts["Hindi"] += 1
-
-        elif ch in SINDHI_UNIQUE:
-            counts["Sindhi"] += 1
-
-        elif 0x0600 <= code <= 0x06FF or 0x0750 <= code <= 0x077F:
-            counts["Urdu"] += 1
-
-        elif ch.isascii() and ch.isalpha():
-            counts["Latin"] += 1
-
-    # Script-based detection
-    if counts["Hindi"] > 0:
-        return "Hindi"
-
-    if counts["Sindhi"] > 0:
-        return "Sindhi"
-
-    if counts["Urdu"] > 0:
-        # Arabic-specific characters help distinguish Arabic.
-        arabic_chars = set("ةىؤئ")
-        if any(ch in arabic_chars for ch in text):
-            return "Arabic"
-        return "Urdu"
-
-    # Roman Urdu detection
-    words = set(re.findall(r"[a-zA-Z]+", text.lower()))
-    matches = len(words.intersection(ROMAN_URDU_WORDS))
-
-    if counts["Latin"] > 0 and matches >= 2:
-        return "Urdu"
-
-    return "English"
+        return []
+    # Keep sentence boundaries where possible.
+    sentences = re.split(r"(?<=[.!?؟۔])\s+", text)
+    chunks, current = [], ""
+    for sentence in sentences:
+        if len(sentence) > max_chars:
+            words = sentence.split()
+            for word in words:
+                candidate = (current + " " + word).strip()
+                if len(candidate) <= max_chars:
+                    current = candidate
+                else:
+                    if current:
+                        chunks.append(current)
+                    current = word
+        else:
+            candidate = (current + " " + sentence).strip()
+            if len(candidate) <= max_chars:
+                current = candidate
+            else:
+                if current:
+                    chunks.append(current)
+                current = sentence
+    if current:
+        chunks.append(current)
+    return chunks
 
 
-# ------------------------------------------------------------
-# SESSION STATE
-# ------------------------------------------------------------
-
-if "mehar_v95_script" not in st.session_state:
-    st.session_state.mehar_v95_script = DEFAULT_TEXTS["Urdu"]
-
-if "mehar_v95_audio" not in st.session_state:
-    st.session_state.mehar_v95_audio = None
-
-def clear_script():
-    st.session_state.mehar_v95_script = ""
-    st.session_state.mehar_v95_audio = None
+async def _edge_save(text, voice, rate, path):
+    await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(path)
 
 
-# ------------------------------------------------------------
-# SCRIPT INPUT
-# ------------------------------------------------------------
+def ffmpeg_bin():
+    return imageio_ffmpeg.get_ffmpeg_exe()
 
-st.subheader("📝 YOUR SCRIPT")
 
-text_input = st.text_area(
-    "Text likhein ya paste karein:",
-    key="mehar_v95_script",
+def validate_audio(path, min_bytes=500):
+    return os.path.isfile(path) and os.path.getsize(path) > min_bytes
+
+
+def synthesize_edge_chunk(text, voice, rate, path, retries=3):
+    last_error = None
+    for attempt in range(retries):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+            asyncio.run(_edge_save(text, voice, rate, path))
+            if validate_audio(path):
+                return
+            last_error = RuntimeError("Provider returned an empty/very small audio file")
+        except Exception as exc:
+            last_error = exc
+        time.sleep(0.7 * (attempt + 1))
+    raise RuntimeError(f"Edge TTS failed after {retries} attempts: {last_error}")
+
+
+def synthesize_gtts_chunk(text, lang, path):
+    if gTTS is None:
+        raise RuntimeError("gTTS backup package is not installed")
+    gTTS(text=text, lang=lang, slow=False).save(path)
+    if not validate_audio(path):
+        raise RuntimeError("gTTS returned an empty audio file")
+
+
+def concat_mp3(paths, output_path):
+    if not paths:
+        raise RuntimeError("No audio chunks were produced")
+    if len(paths) == 1:
+        Path(output_path).write_bytes(Path(paths[0]).read_bytes())
+    else:
+        list_file = os.path.join(os.path.dirname(output_path), "concat.txt")
+        with open(list_file, "w", encoding="utf-8") as f:
+            for item in paths:
+                safe = os.path.abspath(item).replace("\\", "/").replace("'", "'\\''")
+                f.write(f"file '{safe}'\n")
+        subprocess.run(
+            [ffmpeg_bin(), "-y", "-f", "concat", "-safe", "0",
+             "-i", list_file, "-vn", "-c:a", "libmp3lame", "-q:a", "3",
+             output_path],
+            check=True, capture_output=True, timeout=300,
+        )
+    if not validate_audio(output_path, 800):
+        raise RuntimeError("Final MP3 validation failed")
+
+
+def synthesize_edge_text(text, voice, rate, language, workdir, prefix, progress_cb=None):
+    chunks = split_text(text)
+    if not chunks:
+        raise ValueError("Please enter text")
+    paths = []
+    for idx, chunk in enumerate(chunks):
+        p = os.path.join(workdir, f"{prefix}_{idx:04d}.mp3")
+        try:
+            synthesize_edge_chunk(chunk, voice, rate, p)
+        except Exception:
+            # Same-language backup only. Never use a different language voice.
+            fallback = LANGUAGES[language].get("gtts")
+            if not fallback:
+                raise
+            p = os.path.join(workdir, f"{prefix}_backup_{idx:04d}.mp3")
+            synthesize_gtts_chunk(chunk, fallback, p)
+        paths.append(p)
+        if progress_cb:
+            progress_cb(idx + 1, len(chunks))
+    out = os.path.join(workdir, f"{prefix}_joined.mp3")
+    concat_mp3(paths, out)
+    return out, chunks
+
+
+def get_sindhi_client():
+    if texttospeech is None or service_account is None:
+        raise RuntimeError("Google Cloud TTS libraries missing; install requirements.txt")
+    project = st.secrets.get("GOOGLE_CLOUD_PROJECT", "")
+    account = st.secrets.get("GOOGLE_CLOUD_SERVICE_ACCOUNT", None)
+    if not project or not account:
+        raise RuntimeError(
+            "Sindhi voice setup missing. Streamlit Secrets mein "
+            "GOOGLE_CLOUD_PROJECT aur GOOGLE_CLOUD_SERVICE_ACCOUNT add karein. "
+            "Groq key yahan use nahi hoti."
+        )
+    if isinstance(account, str):
+        import json
+        account = json.loads(account)
+    creds = service_account.Credentials.from_service_account_info(
+        dict(account),
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    )
+    return texttospeech.TextToSpeechClient(credentials=creds)
+
+
+def synthesize_sindhi(text, voice, workdir, prefix):
+    client = get_sindhi_client()
+    chunks = split_text(text, 700)
+    paths = []
+    for idx, chunk in enumerate(chunks):
+        request_input = texttospeech.SynthesisInput(
+            text=chunk,
+            prompt=("Speak the exact text in clear, natural Sindhi. "
+                    "Do not translate, add, or omit words.")
+        )
+        params = texttospeech.VoiceSelectionParams(
+            language_code="sd-IN",
+            name=voice,
+            model_name="gemini-3.1-flash-tts-preview",
+        )
+        config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3
+        )
+        response = client.synthesize_speech(
+            input=request_input, voice=params, audio_config=config
+        )
+        if not response.audio_content:
+            raise RuntimeError(f"Sindhi TTS returned empty audio at chunk {idx+1}")
+        path = os.path.join(workdir, f"{prefix}_{idx:04d}.mp3")
+        Path(path).write_bytes(response.audio_content)
+        if not validate_audio(path):
+            raise RuntimeError(f"Sindhi audio chunk {idx+1} failed validation")
+        paths.append(path)
+    out = os.path.join(workdir, f"{prefix}_joined.mp3")
+    concat_mp3(paths, out)
+    return out, chunks
+
+
+def mix_background_music(input_mp3, music_bytes, volume, output_mp3, workdir):
+    music_path = os.path.join(workdir, "background_music")
+    Path(music_path).write_bytes(music_bytes)
+    subprocess.run(
+        [ffmpeg_bin(), "-y", "-i", input_mp3, "-stream_loop", "-1",
+         "-i", music_path, "-filter_complex",
+         f"[1:a]volume={volume}[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=2",
+         "-c:a", "libmp3lame", "-q:a", "3", output_mp3],
+        check=True, capture_output=True, timeout=300,
+    )
+    if not validate_audio(output_mp3, 800):
+        raise RuntimeError("Background music mix failed validation")
+    return output_mp3
+
+
+def to_wav(input_mp3, output_wav):
+    subprocess.run(
+        [ffmpeg_bin(), "-y", "-i", input_mp3, "-ac", "2", "-ar", "44100",
+         output_wav],
+        check=True, capture_output=True, timeout=300,
+    )
+    if not validate_audio(output_wav, 1000):
+        raise RuntimeError("WAV conversion failed validation")
+    return output_wav
+
+
+def fmt_srt_time(seconds):
+    ms = int(max(0, seconds) * 1000)
+    h, rem = divmod(ms, 3600000)
+    m, rem = divmod(rem, 60000)
+    s, ms = divmod(rem, 1000)
+    return f"{h:02}:{m:02}:{s:02},{ms:03}"
+
+
+def make_approx_srt(chunks, language, rate):
+    # Estimated cue timing; not forced-alignment word timestamps.
+    cues, cursor = [], 0.0
+    speed_factor = 1.0
+    if rate.startswith("+"):
+        speed_factor = 1.08
+    elif rate.startswith("-"):
+        try:
+            speed_factor = 1 + int(rate[:-1]) / 100
+        except Exception:
+            pass
+    for idx, chunk in enumerate(chunks, 1):
+        words = max(1, len(chunk.split()))
+        duration = max(1.2, words / (2.6 * max(0.5, speed_factor)))
+        start, end = cursor, cursor + duration
+        cues.append(f"{idx}\n{fmt_srt_time(start)} --> {fmt_srt_time(end)}\n{chunk}\n")
+        cursor = end + 0.15
+    return "\n".join(cues)
+
+
+def parse_dialogue(text):
+    """Recognize [MALE] / [FEMALE] line prefixes; untagged lines use default voice."""
+    rows = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r"^\[(MALE|FEMALE)\]\s*(.*)$", line, re.I)
+        if match:
+            rows.append((match.group(1).lower(), match.group(2).strip()))
+        else:
+            rows.append(("default", line))
+    return [(speaker, body) for speaker, body in rows if body]
+
+
+# ---------------------------------------------------------------------
+# UI
+# ---------------------------------------------------------------------
+st.subheader("📝 Script to Voice")
+mode = st.radio("Language mode", ["Auto Detect", "Choose language manually"], horizontal=True)
+script = st.text_area(
+    "Apna script yahan paste karein",
     height=230,
-    max_chars=18000,
-    help="Urdu, Sindhi, Hindi, Arabic, English ya Roman Urdu."
+    placeholder="Urdu, Sindhi, Hindi, English ya Arabic text paste karein...",
 )
 
-detected_language = detect_language(text_input)
-
-st.info(
-    f"🔍 Auto-detected language: {detected_language}"
-)
-
-if text_input.strip():
-    st.caption("Copy ke liye neeche text box ke copy icon ko use karein.")
-    st.code(text_input, language=None)
-
-col_copy, col_clear = st.columns(2)
-
-with col_copy:
-    st.button(
-        "📋 COPY TEXT",
-        use_container_width=True,
-        disabled=not bool(text_input.strip()),
-        help="Text box ke copy icon se text copy karein."
-    )
-
-with col_clear:
-    st.button(
-        "🧹 CLEAR TEXT",
-        use_container_width=True,
-        on_click=clear_script
-    )
-
-
-# ------------------------------------------------------------
-# LANGUAGE OVERRIDE — AUTO IS DEFAULT
-# ------------------------------------------------------------
-
-language_options = [
-    "🤖 AUTO DETECT",
-    LANGUAGE_LABELS["Urdu"],
-    LANGUAGE_LABELS["Sindhi"],
-    LANGUAGE_LABELS["Hindi"],
-    LANGUAGE_LABELS["English"],
-    LANGUAGE_LABELS["Arabic"],
-]
-
-selected_language = st.selectbox(
-    "🌍 LANGUAGE MODE:",
-    language_options,
-    index=0
-)
-
-if selected_language == "🤖 AUTO DETECT":
-    language = detected_language
+detected, confidence, reason = detect_language(script)
+if mode == "Auto Detect":
+    if detected and confidence >= 0.70:
+        st.success(f"Detected: {detected} • confidence {confidence:.0%} • {reason}")
+        language = detected
+    else:
+        st.warning(f"Language clear nahi hui: {reason}. Urdu/Arabic same script use karte hain.")
+        language = st.selectbox("Please confirm language", list(LANGUAGES.keys()))
 else:
-    language = next(
-        key for key, value in LANGUAGE_LABELS.items()
-        if value == selected_language
-    )
+    language = st.selectbox("Select script language", list(LANGUAGES.keys()))
 
-st.success(f"Selected language: {language}")
+if script.strip() and detected and detected != language and mode == "Choose language manually":
+    st.info(f"Script detection says {detected}; manual selection {language} rakhi gayi hai.")
 
-
-# ------------------------------------------------------------
-# VOICE SELECTION
-# ------------------------------------------------------------
-
-if language == "Urdu":
-    voice_label = st.selectbox(
-        "🎙️ ASAD / UZMA ORIGINAL V95 PRESETS:",
-        list(URDU_AGE_LABELS.keys()),
-        index=6
-    )
-    voice_name = URDU_AGE_LABELS[voice_label]
-    engine = "edge"
-
-    st.info(
-        "Urdu voice: Asad / Uzma. Age labels are presets only; "
-        "they do not change the actual voice age."
-    )
-
-elif language == "Sindhi":
-    sindhi_voices = {
-        "Female AI Voice - Kore": "Kore",
-        "Male AI Voice - Charon": "Charon",
-    }
-
-    voice_label = st.selectbox(
-        "🎙️ SINDHI VOICE:",
-        list(sindhi_voices.keys())
-    )
-    voice_name = sindhi_voices[voice_label]
-    engine = "gemini_cloud"
-
-    st.info(
-        "Sindhi engine: Google Cloud Gemini-TTS | sd-IN Preview. "
-        "Pakistani Sindhi accent is guided through the voice prompt."
-    )
-
+voice_gender = st.radio("Voice", ["Female", "Male"], horizontal=True)
+voice_name = LANGUAGES[language]["female" if voice_gender == "Female" else "male"][1]
+voice_label = LANGUAGES[language]["female" if voice_gender == "Female" else "male"][0]
+if language == "Sindhi":
+    st.info("Sindhi voice Google Cloud Gemini-TTS se chalegi. Iske liye Google Cloud credentials chahiye; Groq key kaam nahi karegi.")
 else:
-    selected_voices = EDGE_VOICES[language]
-
-    voice_label = st.selectbox(
-        "🎙️ SELECT VOICE:",
-        list(selected_voices.keys())
-    )
-    voice_name = selected_voices[voice_label]
-    engine = "edge"
-
-
-# ------------------------------------------------------------
-# DURATION AND SPEECH SETTINGS
-# ------------------------------------------------------------
-
-limit_label = st.selectbox(
-    "⏱️ AUDIO LIMIT:",
-    list(DURATION_OPTIONS.keys()),
-    index=0
-)
-
-MAX_SEC = DURATION_OPTIONS[limit_label]
-MAX_CHARS = MAX_SEC * 30
-
-word_count = len(text_input.split())
-estimated_seconds = word_count / 2.5 if word_count else 0
-
-c1, c2 = st.columns(2)
-c1.metric("Words", word_count)
-c2.metric("Estimated speech", f"{estimated_seconds:.0f} sec")
-
-st.progress(
-    min(estimated_seconds / MAX_SEC, 1.0)
-    if MAX_SEC else 0
-)
-
-if estimated_seconds > MAX_SEC:
-    st.warning(
-        "Script selected duration limit se zyada ho sakta hai. "
-        "Longer duration select karein."
-    )
+    st.info(f"Selected dedicated voice: {voice_label} • {voice_name}")
 
 rate = st.select_slider(
-    "⚡ EDGE SPEECH SPEED:",
-    options=["-15%", "-10%", "-5%", "+0%", "+10%"],
+    "Speech speed",
+    options=["-15%", "-10%", "-5%", "+0%", "+5%", "+10%"],
     value="-5%",
-    disabled=(engine != "edge")
 )
 
-style = st.selectbox(
-    "🎭 SINDHI SPEECH STYLE:",
-    [
-        "Natural, clear, warm Pakistani Sindhi narration",
-        "Energetic commercial advertisement",
-        "Calm and friendly storytelling",
-        "Professional radio announcer",
-    ],
-    disabled=(engine != "gemini_cloud")
-)
-
-st.caption(
-    "Duration estimate hai. Actual audio duration language, pauses "
-    "aur speaking speed par depend karti hai."
-)
-
-
-# ------------------------------------------------------------
-# SAFE TEXT CHUNKING
-# Keep words intact and avoid dropping small words.
-# ------------------------------------------------------------
-
-def split_text_chars(text, max_chars=280):
-    text = (text or "").strip()
-
-    if not text:
-        return []
-
-    words = re.findall(r"\S+", text)
-    chunks = []
-    current = ""
-
-    for word in words:
-        if len(word) > max_chars:
-            raise ValueError(
-                "A single word is longer than the allowed audio chunk."
-            )
-
-        candidate = f"{current} {word}".strip()
-
-        if len(candidate) <= max_chars:
-            current = candidate
-        else:
-            if current:
-                chunks.append(current)
-            current = word
-
-    if current:
-        chunks.append(current)
-
-    return chunks
-
-
-def split_text_utf8(text, max_bytes=2200):
-    text = (text or "").strip()
-
-    if not text:
-        return []
-
-    words = re.findall(r"\S+", text)
-    chunks = []
-    current = ""
-
-    for word in words:
-        word_size = len(word.encode("utf-8"))
-
-        if word_size > max_bytes:
-            raise ValueError(
-                "A single word is too large for Sindhi TTS."
-            )
-
-        candidate = f"{current} {word}".strip()
-
-        if len(candidate.encode("utf-8")) <= max_bytes:
-            current = candidate
-        else:
-            if current:
-                chunks.append(current)
-            current = word
-
-    if current:
-        chunks.append(current)
-
-    return chunks
-
-
-# ------------------------------------------------------------
-# AUDIO JOINING
-# ------------------------------------------------------------
-
-def join_mp3_files(paths, output_path):
-    if not paths:
-        raise RuntimeError("No audio chunks were generated.")
-
-    if len(paths) == 1:
-        with open(paths[0], "rb") as f:
-            return f.read()
-
-    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    list_path = os.path.join(
-        os.path.dirname(output_path),
-        "concat_list.txt"
-    )
-
-    with open(list_path, "w", encoding="utf-8") as f:
-        for path in paths:
-            safe_path = os.path.abspath(path).replace("\\", "/")
-            safe_path = safe_path.replace("'", "'\\''")
-            f.write(f"file '{safe_path}'\n")
-
-    result = subprocess.run(
-        [
-            ffmpeg,
-            "-y",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", list_path,
-            "-vn",
-            "-c:a", "libmp3lame",
-            "-b:a", "128k",
-            output_path,
-        ],
-        check=True,
-        capture_output=True,
-        timeout=600,
-    )
-
-    if not os.path.exists(output_path):
-        raise RuntimeError("Final audio file was not created.")
-
-    if os.path.getsize(output_path) < 800:
-        raise RuntimeError("Final audio file is empty or incomplete.")
-
-    with open(output_path, "rb") as f:
-        return f.read()
-
-
-# ------------------------------------------------------------
-# EDGE TTS — NO WRONG-LANGUAGE FALLBACK
-# ------------------------------------------------------------
-
-async def edge_chunk(text, voice, speech_rate, path):
-    communicate = edge_tts.Communicate(
-        text=text,
-        voice=voice,
-        rate=speech_rate
-    )
-
-    await communicate.save(path)
-
-    if not os.path.exists(path) or os.path.getsize(path) < 800:
-        raise RuntimeError("Edge TTS returned an empty audio chunk.")
-
-
-def generate_edge_audio(text, voice, speech_rate):
-    chunks = split_text_chars(text, 280)
-
-    if not chunks:
-        raise ValueError("Please enter your script.")
-
-    progress = st.progress(0)
-    status = st.empty()
-
-    with tempfile.TemporaryDirectory(
-        prefix="mehar_v95_edge_"
-    ) as folder:
-
-        audio_paths = []
-
-        for i, chunk in enumerate(chunks):
-            chunk_path = os.path.join(
-                folder,
-                f"edge_{i:04d}.mp3"
-            )
-
-            success = False
-            last_error = None
-
-            for attempt in range(3):
-                try:
-                    if os.path.exists(chunk_path):
-                        os.remove(chunk_path)
-
-                    asyncio.run(
-                        edge_chunk(
-                            chunk,
-                            voice,
-                            speech_rate,
-                            chunk_path
-                        )
-                    )
-
-                    success = True
-                    break
-
-                except Exception as exc:
-                    last_error = exc
-                    time.sleep(1.2 * (attempt + 1))
-
-            if not success:
-                raise RuntimeError(
-                    f"Voice generation failed at chunk {i + 1} "
-                    f"of {len(chunks)}. No chunk was skipped. "
-                    f"Error: {last_error}"
-                )
-
-            audio_paths.append(chunk_path)
-
-            progress.progress((i + 1) / len(chunks))
-            status.write(
-                f"Generating audio: {i + 1}/{len(chunks)}"
-            )
-
-        final_path = os.path.join(
-            folder,
-            "MEHAR_V95_FINAL.mp3"
-        )
-
-        return join_mp3_files(audio_paths, final_path)
-
-
-# ------------------------------------------------------------
-# GOOGLE CLOUD GEMINI TTS — SINDHI
-# ------------------------------------------------------------
-
-def get_cloud_tts_client():
-    project_id = st.secrets.get(
-        "GOOGLE_CLOUD_PROJECT",
-        ""
-    )
-
-    service_info = st.secrets.get(
-        "GOOGLE_CLOUD_SERVICE_ACCOUNT",
-        None
-    )
-
-    if not project_id or not service_info:
-        raise RuntimeError(
-            "Sindhi setup missing. Streamlit Cloud > "
-            "App settings > Secrets mein "
-            "GOOGLE_CLOUD_PROJECT aur "
-            "GOOGLE_CLOUD_SERVICE_ACCOUNT add karein."
-        )
-
-    if isinstance(service_info, str):
-        service_info = json.loads(service_info)
-
-    credentials = (
-        service_account.Credentials.from_service_account_info(
-            dict(service_info),
-            scopes=[
-                "https://www.googleapis.com/auth/cloud-platform"
-            ]
-        )
-    )
-
-    return texttospeech.TextToSpeechClient(
-        credentials=credentials
-    )
-
-
-def generate_sindhi_audio(text, voice):
-    chunks = split_text_utf8(text, 2200)
-
-    if not chunks:
-        raise ValueError("Sindhi script enter karein.")
-
-    client = get_cloud_tts_client()
-
-    progress = st.progress(0)
-    status = st.empty()
-
-    prompt = (
-        "Speak the supplied text in clear, natural Sindhi. "
-        "Use a fluent Pakistani Sindhi conversational accent "
-        "as naturally as possible. Keep Sindhi pronunciation clear. "
-        "Read the text exactly as supplied. Do not translate it. "
-        "Do not summarize, paraphrase, repeat, add or omit words. "
-        "Preserve proper names, including Pakistan. "
-        "Pronounce every written word and short word clearly. "
-        f"Speaking style: {style}."
-    )
-
-    with tempfile.TemporaryDirectory(
-        prefix="mehar_v95_sindhi_"
-    ) as folder:
-
-        audio_paths = []
-
-        for i, chunk in enumerate(chunks):
-            chunk_path = os.path.join(
-                folder,
-                f"sindhi_{i:04d}.mp3"
-            )
-
-            last_error = None
-            success = False
-
-            for attempt in range(3):
-                try:
-                    synthesis_input = (
-                        texttospeech.SynthesisInput(
-                            text=chunk,
-                            prompt=prompt
-                        )
-                    )
-
-                    voice_params = (
-                        texttospeech.VoiceSelectionParams(
-                            language_code="sd-IN",
-                            name=voice,
-                            model_name="gemini-3.1-flash-tts-preview"
-                        )
-                    )
-
-                    audio_config = (
-                        texttospeech.AudioConfig(
-                            audio_encoding=(
-                                texttospeech.AudioEncoding.MP3
-                            )
-                        )
-                    )
-
-                    response = client.synthesize_speech(
-                        input=synthesis_input,
-                        voice=voice_params,
-                        audio_config=audio_config
-                    )
-
-                    if not response.audio_content:
-                        raise RuntimeError(
-                            "Google returned empty audio."
-                        )
-
-                    with open(chunk_path, "wb") as f:
-                        f.write(response.audio_content)
-
-                    if os.path.getsize(chunk_path) < 800:
-                        raise RuntimeError(
-                            "Sindhi audio chunk is too small."
-                        )
-
-                    success = True
-                    break
-
-                except Exception as exc:
-                    last_error = exc
-                    time.sleep(1.5 * (attempt + 1))
-
-            if not success:
-                raise RuntimeError(
-                    f"Sindhi audio failed at chunk {i + 1} "
-                    f"of {len(chunks)}. No chunk was skipped. "
-                    f"Error: {last_error}"
-                )
-
-            audio_paths.append(chunk_path)
-
-            progress.progress((i + 1) / len(chunks))
-            status.write(
-                f"Sindhi audio: {i + 1}/{len(chunks)}"
-            )
-
-        final_path = os.path.join(
-            folder,
-            "MEHAR_KHALIS_SINDHI_FINAL.mp3"
-        )
-
-        return join_mp3_files(audio_paths, final_path)
-
-
-# ------------------------------------------------------------
-# TEST VOICE
-# ------------------------------------------------------------
-
-PREVIEW_TEXTS = {
-    "Urdu": "السلام علیکم! یہ مہر مارٹ وائس ٹیسٹ ہے۔",
-    "Sindhi": "السلام عليڪم! هي مهر مارٽ جو سنڌي آواز ٽيسٽ آهي.",
-    "Hindi": "नमस्ते! यह मेहर मार्ट का वॉइस टेस्ट है।",
-    "English": "Hello! This is the Mehar Mart voice test.",
-    "Arabic": "السلام عليكم! هذا اختبار صوت مهر مارت.",
-}
-
-if st.button(
-    "🔊 TEST VOICE",
-    use_container_width=True
-):
-    try:
-        with st.spinner("Voice preview generating..."):
-            if engine == "gemini_cloud":
-                preview_bytes = generate_sindhi_audio(
-                    PREVIEW_TEXTS["Sindhi"],
-                    voice_name
-                )
-            else:
-                preview_bytes = generate_edge_audio(
-                    PREVIEW_TEXTS[language],
-                    voice_name,
-                    rate
-                )
-
-        st.audio(preview_bytes, format="audio/mpeg")
-        st.success("Voice preview ready.")
-
-    except Exception as exc:
-        st.error(f"Preview error: {exc}")
-
-
-# ------------------------------------------------------------
-# GENERATE AUDIO
-# ------------------------------------------------------------
-
-if st.button(
-    f"🎙️ GENERATE {language.upper()} VOICE",
-    type="primary",
-    use_container_width=True
-):
-
-    if not text_input.strip():
-        st.error("Please enter your script.")
-
-    elif len(text_input) > MAX_CHARS:
-        st.error(
-            f"Selected duration limit allows approximately "
-            f"{MAX_CHARS} characters. Please choose a longer duration."
-        )
-
-    elif estimated_seconds > MAX_SEC:
-        st.error(
-            "Script selected duration limit se zyada hai. "
-            "Longer duration choose karein."
-        )
-
+dialogue_mode = st.checkbox("Dialogue mode ([MALE] / [FEMALE] lines)", value=False)
+music_file = st.file_uploader("Optional background music (MP3/WAV/M4A)", type=["mp3", "wav", "m4a"])
+music_volume = st.slider("Background music volume", 0.0, 0.35, 0.08, 0.01)
+duration_limit = st.selectbox("Maximum script duration", ["15 sec", "30 sec", "1 min", "2 min", "5 min", "10 min"], index=3)
+max_seconds = {"15 sec":15, "30 sec":30, "1 min":60, "2 min":120, "5 min":300, "10 min":600}[duration_limit]
+word_count = len(script.split())
+estimated_seconds = word_count / 2.5 if word_count else 0
+c1, c2 = st.columns(2)
+c1.metric("Words", word_count)
+c2.metric("Estimated duration", f"{estimated_seconds:.0f} sec")
+if estimated_seconds > max_seconds:
+    st.warning("Script selected duration se lamba lag raha hai. Duration barha dein ya text short karein.")
+
+st.caption("SRT timing is estimated from text length; exact word-level synchronization/forced alignment is not included.")
+
+if st.button("🔊 TEST VOICE", use_container_width=True):
+    if not script.strip():
+        st.warning("Pehle script paste karein.")
+    elif mode == "Auto Detect" and (not detected or confidence < 0.70):
+        st.warning("Pehle detected language confirm karein.")
     else:
         try:
-            with st.spinner(
-                f"{language} | {voice_label} | Audio generating..."
-            ):
-
-                if engine == "gemini_cloud":
-                    audio_bytes = generate_sindhi_audio(
-                        text_input,
-                        voice_name
-                    )
+            sample = script.strip()[:180]
+            with tempfile.TemporaryDirectory(prefix="mehar_v103_test_") as td:
+                if language == "Sindhi":
+                    path, _ = synthesize_sindhi(sample, voice_name, td, "preview")
                 else:
-                    audio_bytes = generate_edge_audio(
-                        text_input,
-                        voice_name,
-                        rate
-                    )
-
-            st.session_state["mehar_v95_audio"] = audio_bytes
-            st.session_state["mehar_v95_voice"] = voice_label
-            st.session_state["mehar_v95_language"] = language
-
-            st.balloons()
-            st.success(
-                "✅ AUDIO READY! No failed chunk was silently skipped."
-            )
-
+                    path, _ = synthesize_edge_text(sample, voice_name, rate, language, td, "preview")
+                st.audio(Path(path).read_bytes(), format="audio/mpeg")
+                st.success("Voice preview ready.")
         except Exception as exc:
-            st.session_state["mehar_v95_audio"] = None
-            st.error(f"Generation error: {exc}")
+            st.error(f"Voice preview failed: {exc}")
 
+if st.button("🎙️ GENERATE FINAL AUDIO", type="primary", use_container_width=True):
+    if not script.strip():
+        st.error("Please enter your script.")
+    elif mode == "Auto Detect" and (not detected or confidence < 0.70):
+        st.error("Auto detection uncertain hai. Language manually confirm karein.")
+    elif estimated_seconds > max_seconds:
+        st.error("Script selected duration limit se zyada hai.")
+    else:
+        progress = st.progress(0)
+        status = st.empty()
+        try:
+            with tempfile.TemporaryDirectory(prefix="mehar_v103_") as td:
+                if dialogue_mode:
+                    lines = parse_dialogue(script)
+                    if not lines:
+                        raise ValueError("Dialogue script mein [MALE] ya [FEMALE] text nahi mila.")
+                    segment_paths, all_chunks = [], []
+                    for idx, (speaker, body) in enumerate(lines):
+                        gender = speaker if speaker in ("male", "female") else voice_gender.lower()
+                        this_voice = LANGUAGES[language][gender][1]
+                        if language == "Sindhi":
+                            seg_path, seg_chunks = synthesize_sindhi(body, this_voice, td, f"dialogue_{idx}")
+                        else:
+                            seg_path, seg_chunks = synthesize_edge_text(body, this_voice, rate, language, td, f"dialogue_{idx}")
+                        segment_paths.append(seg_path)
+                        all_chunks.extend(seg_chunks)
+                        progress.progress((idx + 1) / len(lines))
+                        status.write(f"Dialogue line {idx+1}/{len(lines)} generated")
+                    # Re-encode segments to a single MP3 using concat demuxer.
+                    combined = os.path.join(td, "dialogue_final.mp3")
+                    concat_mp3(segment_paths, combined)
+                    final_mp3 = combined
+                    srt_chunks = all_chunks
+                else:
+                    def update_progress(done, total):
+                        progress.progress(done / total)
+                        status.write(f"Audio chunks: {done}/{total}")
+                    if language == "Sindhi":
+                        final_mp3, srt_chunks = synthesize_sindhi(script, voice_name, td, "main")
+                    else:
+                        final_mp3, srt_chunks = synthesize_edge_text(script, voice_name, rate, language, td, "main", update_progress)
 
-# ------------------------------------------------------------
-# FINAL AUDIO OUTPUT
-# ------------------------------------------------------------
+                if music_file is not None:
+                    mixed = os.path.join(td, "final_with_music.mp3")
+                    final_mp3 = mix_background_music(final_mp3, music_file.getvalue(), music_volume, mixed, td)
 
-if st.session_state.get("mehar_v95_audio"):
+                mp3_bytes = Path(final_mp3).read_bytes()
+                wav_path = os.path.join(td, "final.wav")
+                to_wav(final_mp3, wav_path)
+                wav_bytes = Path(wav_path).read_bytes()
+                srt_text = make_approx_srt(srt_chunks, language, rate)
+
+                st.session_state["v103_mp3"] = mp3_bytes
+                st.session_state["v103_wav"] = wav_bytes
+                st.session_state["v103_srt"] = srt_text
+                st.session_state["v103_script"] = script
+                st.session_state["v103_language"] = language
+                st.session_state["v103_voice"] = voice_label
+                st.success(f"✅ Audio ready • {language} • {voice_label}")
+                st.balloons()
+        except Exception as exc:
+            st.error(f"Generation failed: {exc}")
+            st.info("Agar error Sindhi ka hai to Google Cloud TTS credentials/API/billing check karein. Groq key ko Google private_key mein paste na karein.")
+
+if st.session_state.get("v103_mp3"):
     st.divider()
-    st.subheader("🎧 FINAL AUDIO")
-
-    audio_bytes = st.session_state["mehar_v95_audio"]
-
-    safe_voice = re.sub(
-        r"[^A-Za-z0-9_-]+",
-        "_",
-        st.session_state.get(
-            "mehar_v95_voice",
-            "MEHAR_VOICE"
-        )
-    )
-
-    safe_language = st.session_state.get(
-        "mehar_v95_language",
-        "Audio"
-    )
-
-    st.audio(
-        audio_bytes,
-        format="audio/mpeg"
-    )
-
-    st.download_button(
-        "📥 DOWNLOAD MP3",
-        data=audio_bytes,
-        file_name=f"MEHAR_V95_{safe_language}_{safe_voice}.mp3",
-        mime="audio/mpeg",
-        use_container_width=True
-    )
-
-    st.download_button(
-        "📝 DOWNLOAD SCRIPT TXT",
-        data=st.session_state[
-            "mehar_v95_script"
-        ].encode("utf-8"),
-        file_name="MEHAR_V95_SCRIPT.txt",
-        mime="text/plain",
-        use_container_width=True
-    )
-
-
-# ------------------------------------------------------------
-# FOOTER
-# ------------------------------------------------------------
+    st.subheader("🎧 Final Output")
+    st.write(f"{st.session_state.get('v103_language')} • {st.session_state.get('v103_voice')}")
+    st.audio(st.session_state["v103_mp3"], format="audio/mpeg")
+    safe_name = re.sub(r"[^A-Za-z0-9_-]+", "_", st.session_state.get("v103_language", "audio"))
+    st.download_button("📥 Download MP3", st.session_state["v103_mp3"], f"MEHAR_V103_{safe_name}.mp3", "audio/mpeg", use_container_width=True)
+    st.download_button("📥 Download WAV", st.session_state["v103_wav"], f"MEHAR_V103_{safe_name}.wav", "audio/wav", use_container_width=True)
+    st.download_button("📝 Download SRT subtitles (estimated timing)", st.session_state["v103_srt"], f"MEHAR_V103_{safe_name}.srt", "application/x-subrip", use_container_width=True)
+    st.download_button("📄 Download script TXT", st.session_state["v103_script"].encode("utf-8"), "MEHAR_V103_SCRIPT.txt", "text/plain", use_container_width=True)
 
 st.divider()
-
-st.caption(
-    "MEHAR V95 WORLD STUDIO | Auto Language Detection | "
-    "Urdu Asad + Uzma | Sindhi Gemini-TTS | "
-    "Hindi | English | Arabic"
-)
-
-st.caption(
-    "Note: Auto-detection is best-effort. Roman Urdu pronunciation "
-    "depends on the selected Urdu voice. Sindhi sd-IN is Preview; "
-    "pronunciation should be tested with native Sindhi speakers."
-)
+st.caption("MEHAR V103 WORLD STUDIO • Auto language routing • Urdu / Sindhi / Hindi / English / Arabic")
