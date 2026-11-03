@@ -3,3 +3,4 @@ python-dotenv
 edge-tts
 groq
 requests
+deep-translator
