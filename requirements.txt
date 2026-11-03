@@ -1,3 +1,5 @@
 streamlit
 edge-tts
 deep-translator
+groq
+python-dotenv
