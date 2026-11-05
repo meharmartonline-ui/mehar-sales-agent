@@ -1,8 +1,6 @@
 import streamlit as st
 import edge_tts, asyncio, os, io, re, time, tempfile, requests
 from datetime import datetime
-from pydub import AudioSegment
-from mutagen.mp3 import MP3
 
 st.set_page_config(page_title="MEHAR V104 WORLD STUDIO", page_icon="🌍", layout="wide")
 st.title("🌍 MEHAR V104 - WORLD STUDIO")
