@@ -1,7 +1,5 @@
-
-streamlit
-edge-tts
-imageio-ffmpeg
-gTTS
-groq
-requests
+streamlit>=1.36.0
+edge-tts>=6.1.12
+requests>=2.31.0
+pydub>=0.25.1
+mutagen>=1.47.0
