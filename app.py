@@ -77,19 +77,23 @@ def split_sindhi_chunks(text, max_len=700):
     return [c for c in chunks if c]
 
 def make_sindhi_clear(text):
-    # Google Sindhi sd - asli Sindhi ucharan
-    if gTTS is None:
-        raise RuntimeError("gTTS install nahi hai. requirements.txt mein gtts add karo aur Reboot karo.")
+    import urllib.parse
     text = clean_sindhi(text)
-    chunks = split_sindhi_chunks(text)
+    chunks = split_sindhi_chunks(text, max_len=180)
     audios = []
+    headers = {"User-Agent": "Mozilla/5.0"}
     for ch in chunks:
-        buf = io.BytesIO()
-        gTTS(text=ch, lang="sd", slow=False).write_to_fp(buf)
-        audios.append(buf.getvalue())
-        time.sleep(0.2)
+        q = urllib.parse.quote(ch)
+        url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={q}&tl=sd&client=tw-ob"
+        r = requests.get(url, headers=headers, timeout=20)
+        if r.status_code != 200 or len(r.content) < 500:
+            r = requests.get(url, headers=headers, timeout=20)
+        if len(r.content) < 500:
+            continue
+        audios.append(r.content)
+        time.sleep(0.3)
     if not audios:
-        raise RuntimeError("Sindhi audio nahi bana.")
+        raise RuntimeError("Sindhi Google awaz nahi mili. Thodi der baad dobara try karo.")
     return b"".join(audios), text
 # ==========================================================
 
