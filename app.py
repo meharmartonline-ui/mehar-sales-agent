@@ -121,8 +121,8 @@ async def make_edge(text, voice, rate, pitch):
         if chunk.get("type")=="audio": out.extend(chunk.get("data",b""))
     if not out: raise RuntimeError("TTS audio return nahi hua.")
     return bytes(out)
-        def groq_translate(text,target_lang_name,key,model):
-        if not key: raise ValueError("Auto Translate ke liye Groq API Key sidebar me dalo.")
+def groq_translate(text,target_lang_name,key,model):
+    if not key: raise ValueError("Auto Translate ke liye Groq API Key sidebar me dalo.")
         # Jo model band ho gaya ho to doosra try karo
         models_to_try = [model, "openai/gpt-oss-120b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
         # Duplicate hatao
