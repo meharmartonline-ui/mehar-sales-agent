@@ -122,22 +122,22 @@ async def make_edge(text, voice, rate, pitch):
     if not out: raise RuntimeError("TTS audio return nahi hua.")
     return bytes(out)
 def groq_translate(text,target_lang_name,key,model):
-    if not key: raise ValueError("Auto Translate ke liye Groq API Key sidebar me dalo.")
-        # Jo model band ho gaya ho to doosra try karo
-        models_to_try = [model, "openai/gpt-oss-120b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
-        # Duplicate hatao
-        seen=set(); models=[]
-        for m in models_to_try:
-                if m not in seen: models.append(m); seen.add(m)
-        last_err=""
-        for m in models:
-                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":m,"temperature":0.2,"messages":[{"role":"system","content":f"Translate the given text accurately into {target_lang_name}. If text is already in {target_lang_name}, just return it cleaned with correct alphabet. For Sindhi use correct alphabet: ڪ for k, ک for kh, ٻ ڄ ڏ ڳ for implosives, ڃ ڱ ڻ for nasals, ي for y, ھ for h. For Urdu use Urdu alphabet. For Hindi use Devanagari. Preserve meaning, names, numbers, paragraphs. Return ONLY translation, no explanation."},{"role":"user","content":text}]},timeout=90)
-                if r.status_code==200:
-                        return r.json()["choices"][0]["message"]["content"].strip()
-        last_err=f"Groq {r.status_code}: {r.text[:300]}"
-        if "model_not_found" not in r.text and r.status_code!=404:
-            break
-    raise RuntimeError(last_err)
+    if not key: raise ValueError("Groq Key dalo")
+    import requests as _r
+    _h = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    _m1 = model
+    _m2 = "openai/gpt-oss-120b"
+    _m3 = "llama-3.1-8b-instant"
+    _p1 = {"model": _m1, "temperature": 0.2, "messages": [{"role": "system", "content": f"Translate into {target_lang_name}. Return ONLY translation."}, {"role": "user", "content": text}]}
+    _r1 = _r.post("https://api.groq.com/openai/v1/chat/completions", headers=_h, json=_p1, timeout=90)
+    if _r1.status_code == 200: return _r1.json()["choices"][0]["message"]["content"].strip()
+    _p2 = {"model": _m2, "temperature": 0.2, "messages": [{"role": "system", "content": f"Translate into {target_lang_name}. Return ONLY translation."}, {"role": "user", "content": text}]}
+    _r2 = _r.post("https://api.groq.com/openai/v1/chat/completions", headers=_h, json=_p2, timeout=90)
+    if _r2.status_code == 200: return _r2.json()["choices"][0]["message"]["content"].strip()
+    _p3 = {"model": _m3, "temperature": 0.2, "messages": [{"role": "system", "content": f"Translate into {target_lang_name}. Return ONLY translation."}, {"role": "user", "content": text}]}
+    _r3 = _r.post("https://api.groq.com/openai/v1/chat/completions", headers=_h, json=_p3, timeout=90)
+    if _r3.status_code == 200: return _r3.json()["choices"][0]["message"]["content"].strip()
+    raise RuntimeError("Groq fail: " + _r3.text[:200])
 
 def expand_to_duration(text,target):
     m={"15 Second":15,"30 Second":30,"1 Minute":60,"2 Minute":120,"5 Minute":300,"10 Minute":600}
