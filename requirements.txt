@@ -1,6 +1,4 @@
 streamlit
 edge-tts
-pydub
 mutagen
 requests
-python-3.11
