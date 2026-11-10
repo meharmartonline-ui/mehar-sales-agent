@@ -121,19 +121,19 @@ async def make_edge(text, voice, rate, pitch):
         if chunk.get("type")=="audio": out.extend(chunk.get("data",b""))
     if not out: raise RuntimeError("TTS audio return nahi hua.")
     return bytes(out)
-    def groq_translate(text,target_lang_name,key,model):
-    if not key: raise ValueError("Auto Translate ke liye Groq API Key sidebar me dalo.")
-    # Jo model band ho gaya ho to doosra try karo
-    models_to_try = [model, "openai/gpt-oss-120b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
-    # Duplicate hatao
-    seen=set(); models=[]
-    for m in models_to_try:
-        if m not in seen: models.append(m); seen.add(m)
-    last_err=""
-    for m in models:
-        r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":m,"temperature":0.2,"messages":[{"role":"system","content":f"Translate the given text accurately into {target_lang_name}. If text is already in {target_lang_name}, just return it cleaned with correct alphabet. For Sindhi use correct alphabet: ڪ for k, ک for kh, ٻ ڄ ڏ ڳ for implosives, ڃ ڱ ڻ for nasals, ي for y, ھ for h. For Urdu use Urdu alphabet. For Hindi use Devanagari. Preserve meaning, names, numbers, paragraphs. Return ONLY translation, no explanation."},{"role":"user","content":text}]},timeout=90)
-        if r.status_code==200:
-            return r.json()["choices"][0]["message"]["content"].strip()
+        def groq_translate(text,target_lang_name,key,model):
+        if not key: raise ValueError("Auto Translate ke liye Groq API Key sidebar me dalo.")
+        # Jo model band ho gaya ho to doosra try karo
+        models_to_try = [model, "openai/gpt-oss-120b", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+        # Duplicate hatao
+        seen=set(); models=[]
+        for m in models_to_try:
+                if m not in seen: models.append(m); seen.add(m)
+        last_err=""
+        for m in models:
+                r=requests.post("https://api.groq.com/openai/v1/chat/completions",headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":m,"temperature":0.2,"messages":[{"role":"system","content":f"Translate the given text accurately into {target_lang_name}. If text is already in {target_lang_name}, just return it cleaned with correct alphabet. For Sindhi use correct alphabet: ڪ for k, ک for kh, ٻ ڄ ڏ ڳ for implosives, ڃ ڱ ڻ for nasals, ي for y, ھ for h. For Urdu use Urdu alphabet. For Hindi use Devanagari. Preserve meaning, names, numbers, paragraphs. Return ONLY translation, no explanation."},{"role":"user","content":text}]},timeout=90)
+                if r.status_code==200:
+                        return r.json()["choices"][0]["message"]["content"].strip()
         last_err=f"Groq {r.status_code}: {r.text[:300]}"
         if "model_not_found" not in r.text and r.status_code!=404:
             break
