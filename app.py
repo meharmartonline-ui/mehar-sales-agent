@@ -57,23 +57,12 @@ def expand_to_duration(text, target_label):
         return repeated[:need_chars+200]
 
 def make_sindhi_clear(text):
-    # gTTS sd support nahi karta, direct Google Translate TTS sd use kar rahe hain
+    # Google TTS tukre jodne se MP3 toot jata tha 0:00 ho jata tha
+    # Is liye ab Edge TTS se Sindhi bolenge - ek hi sahi MP3 banta hai
     text = clean_sindhi(text)
-    chunks = split_sindhi_chunks(text, max_len=180)
-    audios = []
-    headers = {"User-Agent": "Mozilla/5.0"}
-    for ch in chunks:
-        q = urllib.parse.quote(ch)
-        url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={q}&tl=sd&client=tw-ob"
-        r = requests.get(url, headers=headers, timeout=20)
-        if r.status_code != 200 or len(r.content) < 500:
-            r = requests.get(url, headers=headers, timeout=20)
-        if len(r.content) < 500: continue
-        audios.append(r.content)
-        time.sleep(0.3)
-    if not audios:
-        raise RuntimeError("Sindhi Google awaz nahi mili. Thodi der baad dobara try karo.")
-    return b"".join(audios), text
+    # Sindhi ke liye Edge ka ur-PK voice sab se stable hai
+    # Alphabet fixer ki wajah se ucharan Sindhi wala hi rahega
+    return run_async(make_edge(text, "ur-PK-AsadNeural", 0, 0)), text
 # ==========================================================
 
 LANGS = {
