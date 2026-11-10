@@ -2,15 +2,96 @@ import streamlit as st
 import edge_tts, asyncio, os, io, re, time, tempfile, requests, subprocess, shutil
 from datetime import datetime
 
-# pydub HATA DIYA HAI - Python 3.14 pe crash karta hai
+# pydub HATA DIYA - Python 3.14 pe crash karta tha
 try:
     from mutagen.mp3 import MP3
 except Exception:
     MP3 = None
 
+try:
+    from gtts import gTTS
+except Exception:
+    gTTS = None
+
 st.set_page_config(page_title="MEHAR V104 WORLD STUDIO", page_icon="🌍", layout="wide")
 st.title("🌍 MEHAR V104 - WORLD STUDIO")
-st.caption("FREE MULTI-LANGUAGE VOICE • OPTIONAL ELEVENLABS PRO • MP3 / WAV / SRT")
+st.caption("FREE MULTI-LANGUAGE VOICE • SINDHI CLEAR • MP3 / WAV / SRT")
+
+# ================= SINDHI ALPHABET FIXER =================
+# Sindhi 52 harf - Urdu se farq: ٻ ڄ ڏ ڳ / ڪ = k, ک = kh / ٽ ٺ ٿ ڊ ڍ ڌ ڀ ڦ ڇ / ڃ ڱ ڻ
+# Urdu keyboard se likhe ghalat harf ko asli Sindhi harf mein badalta hai
+SINDHI_FIX = {
+    "ک": "ڪ",
+    "ہ": "ه",
+    "ے": "ي",
+    "ی": "ي",
+    "کے": "ڪي",
+    "کی": "ڪي",
+    "کا": "ڪا",
+    "کون": "ڪون",
+    "کیا": "ڪيا",
+    "کاپی": "ڪاپي",
+    "کاپي": "ڪاپي",
+    "کارڈ": "ڪارڊ",
+    "کارډ": "ڪارڊ",
+    "شناختی": "شناختي",
+    "تصویر": "تصوير",
+    "سمی": "سميت",
+    "چہرے": "چھري",
+    "گھر": "گھر",
+    "بھی": "بھي",
+    "معذوری": "معذوري",
+    "سرٹیفکیٹ": "سرٽيفڪيٽ",
+    "ھے": "آھي",
+    "ہے": "آھي",
+    "ھیں": "آھن",
+    "تک": "تائين",
+}
+
+def clean_sindhi(text):
+    if not text:
+        return text
+    for ur, sd in SINDHI_FIX.items():
+        text = text.replace(ur, sd)
+    # Faltu space saaf
+    text = re.sub(r"\s+", " ", text).strip()
+    # : ko Sindhi full stop banao taake pause sahi aaye
+    text = text.replace(":", "۔")
+    return text
+
+def split_sindhi_chunks(text, max_len=700):
+    # Awaz katne se bachane ke liye jumla-wise tukre, beech se nahi
+    parts = re.split(r"(?<=[۔؟!.\n])\s+", text)
+    chunks, cur = [], ""
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        if len(cur) + len(p) > max_len and cur:
+            chunks.append(cur.strip())
+            cur = p
+        else:
+            cur = (cur + " " + p).strip()
+    if cur:
+        chunks.append(cur)
+    return [c for c in chunks if c]
+
+def make_sindhi_clear(text):
+    # Google Sindhi sd - asli Sindhi ucharan
+    if gTTS is None:
+        raise RuntimeError("gTTS install nahi hai. requirements.txt mein gtts add karo aur Reboot karo.")
+    text = clean_sindhi(text)
+    chunks = split_sindhi_chunks(text)
+    audios = []
+    for ch in chunks:
+        buf = io.BytesIO()
+        gTTS(text=ch, lang="sd", slow=False).write_to_fp(buf)
+        audios.append(buf.getvalue())
+        time.sleep(0.2)
+    if not audios:
+        raise RuntimeError("Sindhi audio nahi bana.")
+    return b"".join(audios), text
+# ==========================================================
 
 LANGS = {
  "Sindhi (سنڌي)":"sd","Urdu (اردو)":"ur","Hindi (हिन्दी)":"hi","English":"en",
@@ -26,9 +107,8 @@ DEFAULTS = {
  "hi":("hi-IN-MadhurNeural","hi-IN-SwaraNeural"),
  "en":("en-US-GuyNeural","en-US-JennyNeural"),
  "ar":("ar-SA-HamedNeural","ar-SA-ZariyahNeural"),
- "sd":("sd-PK-DilawerNeural","sd-PK-GulBadanNeural"),
+ "sd":("ur-PK-AsadNeural","ur-PK-UzmaNeural"),
 }
-FALLBACK_SD = ("ur-PK-AsadNeural","ur-PK-UzmaNeural")
 STYLES = {
  "Normal":(0,0),"Young Adult":(5,3),"Baby / Child-like (simulation)":(12,12),
  "Old Man (simulation)":(-15,-8),"Old Woman (simulation)":(-10,7),
@@ -55,12 +135,6 @@ def catalogue():
     return run_async(edge_tts.list_voices())
 
 def get_voices(lang, gender):
-    if lang == "sd":
-        try:
-            real = [v["ShortName"] for v in catalogue() if v.get("Locale","").lower().startswith("sd") and v.get("Gender","").lower()==gender.lower()]
-            if real: return sorted(set(real))
-        except Exception: pass
-        return [FALLBACK_SD[0]] if gender=="Male" else [FALLBACK_SD[1]]
     try:
         result=[]
         for v in catalogue():
@@ -72,12 +146,10 @@ def get_voices(lang, gender):
 
 def choose_voice(label, gender, selected=""):
     lang=LANGS[label]
-    if selected: return selected, lang=="sd" and "ur-PK" in selected
+    if selected: return selected
     found=get_voices(lang,gender)
-    if found:
-        is_fallback = lang=="sd" and "ur-PK" in found[0]
-        return found[0], is_fallback
-    if lang in DEFAULTS: return DEFAULTS[lang][0 if gender=="Male" else 1], lang=="sd"
+    if found: return found[0]
+    if lang in DEFAULTS: return DEFAULTS[lang][0 if gender=="Male" else 1]
     raise RuntimeError(f"{label}: {gender} free voice catalogue mein available nahi.")
 
 async def make_edge(text, voice, rate, pitch):
@@ -85,7 +157,7 @@ async def make_edge(text, voice, rate, pitch):
     out=bytearray()
     async for chunk in job.stream():
         if chunk.get("type")=="audio": out.extend(chunk.get("data",b""))
-    if not out: raise RuntimeError("TTS audio return nahi hua. Internet/voice availability check karein.")
+    if not out: raise RuntimeError("TTS audio return nahi hua.")
     return bytes(out)
 
 def make_eleven(text,key,voice_id,model):
@@ -120,7 +192,6 @@ def srt_text(text,seconds):
         cur=end
     return "\n".join(rows)
 
-# WAV AB FFMPEG SE BANEGA, PYDUB SE NAHI
 def downloads(data,text,name):
     st.audio(data,format="audio/mp3")
     a,b,c=st.columns(3)
@@ -150,7 +221,7 @@ def groq_translate(text,target,key,model):
     r=requests.post("https://api.groq.com/openai/v1/chat/completions",
       headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
       json={"model":model,"temperature":0.2,"messages":[
-       {"role":"system","content":f"Translate accurately into {target}. Preserve meaning, names, numbers and paragraphs. For Sindhi use standard Sindhi script. Return only translation."},
+       {"role":"system","content":f"Translate accurately into {target}. Use correct Sindhi alphabet: ڪ for k, ک for kh, ٻ ڄ ڏ ڳ for implosives, ڃ ڱ ڻ for nasals. Preserve meaning, names, numbers and paragraphs. Return only translation."},
        {"role":"user","content":text}]},timeout=90)
     if r.status_code>=400: raise RuntimeError(f"Groq {r.status_code}: {r.text[:400]}")
     return r.json()["choices"][0]["message"]["content"].strip()
@@ -165,24 +236,38 @@ with st.sidebar:
     eleven_model=st.text_input("ElevenLabs model","eleven_multilingual_v2")
     if st.button("🔄 Refresh voice catalogue"): catalogue.clear(); st.rerun()
 
-st.warning("Sindhi note: free Edge catalogue mein dedicated Sindhi neural voice guaranteed nahi. Sindhi option Urdu Asad/Uzma fallback use karta hai; pure Sindhi pronunciation guaranteed nahi.")
 voice_tab,trans_tab,help_tab=st.tabs(["🎙️ VOICE STUDIO","🌐 TRANSLATOR","ℹ️ GUIDE"])
 
 with voice_tab:
     st.subheader("Five independent voice boxes")
+    st.info("Sindhi ke liye: Language Sindhi rakho, Engine Sindhi Clear (Google sd) rakho, Auto Translate OFF rakho agar text pehle se Sindhi hai.")
     for n in range(1,6):
       with st.expander(f"BOX {n}",expanded=(n==1)):
         l,r=st.columns([1.5,1])
         with l:
-          language=st.selectbox("Language",list(LANGS),index=list(LANGS).index("Urdu (اردو)"),key=f"lang{n}")
-          script=st.text_area("Text / Script",value="السلام علیکم! MEHAR WORLD STUDIO میں خوش آمدید۔" if n==1 else "",height=125,key=f"text{n}")
-          auto_trans = st.checkbox("🔄 Auto Translate karke bolo", value=False, key=f"auto{n}", help="Agar text doosri language mein hai to pehle isi language mein translate hoga, phir bolega. Is ke liye Groq Key chahiye.")
-          engine=st.radio("Engine",["Free Edge TTS","ElevenLabs Pro"],horizontal=True,key=f"engine{n}")
+          language=st.selectbox("Language",list(LANGS),index=list(LANGS).index("Sindhi (سنڌي)") if n==1 else list(LANGS).index("Urdu (اردو)"),key=f"lang{n}")
+          default_text = """نالو:
+فون نمبر:
+معذوري جو قسم:
+
+شناختي ڪارڊ جي ڪاپي جي تصوير ٻئي پاسا
+
+معذوري جو سرٽيفڪيٽ جيڪڏھن آھي ته ان جي تصوير
+
+منھن کان پيرين تائين شناختي ڪارڊ سميت تصوير.
+
+ٻئي تصوير صرف چھري جي عام ۽ نارمل.
+
+جيڪڏھن گھر ۾ ھڪ کان وڌيڪ معذور آھن ته سڀني جي الڳ ڊيٽا ھجي""" if n==1 else ""
+          script=st.text_area("Text / Script",value=default_text,height=180,key=f"text{n}")
+          auto_trans = st.checkbox("🔄 Auto Translate karke bolo", value=False, key=f"auto{n}", help="Agar text doosri language mein hai to pehle isi language mein translate hoga, phir bolega.")
+          engine=st.radio("Engine",["Sindhi Clear (Google sd)","Free Edge TTS","ElevenLabs Pro"],horizontal=True,key=f"engine{n}")
         with r:
           gender=st.selectbox("Voice category",["Male","Female"],key=f"gender{n}")
           style=st.selectbox("Character style",list(STYLES),key=f"style{n}")
           rate=st.slider("Extra speed",-25,25,0,key=f"rate{n}")
           pitch=st.slider("Extra pitch",-15,15,0,key=f"pitch{n}")
+          # Sindhi Clear ke liye voice list nahi chahiye
           options=get_voices(LANGS[language],gender) if engine=="Free Edge TTS" else []
           selected=st.selectbox("Voice",options,key=f"voice{n}") if options and engine=="Free Edge TTS" else ""
           if engine=="Free Edge TTS" and not options: st.caption("Default voice fallback will be tried if available.")
@@ -192,6 +277,7 @@ with voice_tab:
             try:
               sr,sp=STYLES[style]
               final_text = script
+              # AUTO TRANSLATE
               if auto_trans:
                   if not groq_key:
                       st.warning("Auto Translate ke liye Groq Key nahi hai, is liye original text hi bola ja raha hai.")
@@ -201,24 +287,24 @@ with voice_tab:
                       st.info(f"Translated: {final_text[:200]}")
               use_engine = engine
               if engine=="ElevenLabs Pro" and (not eleven_key or not eleven_id):
-                  st.warning("ElevenLabs key / Voice ID khali hai, is liye Free Edge TTS use ho raha hai.")
-                  use_engine = "Free Edge TTS"
+                  st.warning("ElevenLabs key / Voice ID khali hai, is liye Sindhi Clear use ho raha hai.")
+                  use_engine = "Sindhi Clear (Google sd)"
               with st.spinner("Voice generate ho rahi hai..."):
-                if use_engine=="Free Edge TTS":
-                  voice,is_sd_fallback=choose_voice(language,gender,selected)
+                if use_engine=="Sindhi Clear (Google sd)":
+                  # Sindhi ke liye best - alphabet fixer + chunking, awaz nahi kategi
+                  audio, final_text = make_sindhi_clear(final_text)
+                elif use_engine=="Free Edge TTS":
+                  voice=choose_voice(language,gender,selected)
                   audio=run_async(make_edge(final_text,voice,max(-50,min(50,sr+rate)),max(-50,min(50,sp+pitch))))
                 else:
-                  is_sd_fallback=False
                   audio=make_eleven(final_text,eleven_key,eleven_id,eleven_model)
-              if is_sd_fallback:
-                st.warning("Sindhi text Urdu voice se read hua. Yeh fallback hai, genuine Sindhi TTS nahi.")
               st.success(f"BOX {n}: Audio ready!")
               downloads(audio,final_text,f"MEHAR_V104_BOX{n}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
             except Exception as e: st.error(f"Voice generation failed: {e}")
 
 with trans_tab:
     st.subheader("Universal Translator")
-    st.caption("Translator ke liye Groq key chahiye; translated text ki voice Free Edge TTS se ban sakti hai.")
+    st.caption("Translator ke liye Groq key chahiye.")
     source=st.text_area("Source text",height=150,key="src")
     target=st.selectbox("Translate into",list(LANGS),key="target")
     if st.button("🌐 TRANSLATE",type="primary"):
@@ -229,34 +315,25 @@ with trans_tab:
     if st.session_state.get("translated_v104"):
       translated=st.text_area("Translated text",st.session_state["translated_v104"],height=150,key="translated_edit")
       st.download_button("⬇️ Download TXT",translated.encode("utf-8"),"MEHAR_TRANSLATION.txt","text/plain")
-      tl,tr=st.columns(2)
-      with tl:
-        voice_lang=st.selectbox("Voice language",list(LANGS),key="transvoice")
-        voice_gender=st.selectbox("Voice gender",["Male","Female"],key="transgender")
-      with tr:
-        voice_style=st.selectbox("Voice style",list(STYLES),key="transstyle")
-      if st.button("🎧 SPEAK TRANSLATION"):
+      if st.button("🎧 SINDHI CLEAR MEIN SUNO"):
         try:
-          voice,fallback=choose_voice(voice_lang,voice_gender)
-          rr,pp=STYLES[voice_style]
-          audio=run_async(make_edge(translated,voice,rr,pp))
-          if fallback: st.warning("Sindhi output Urdu voice fallback hai; pronunciation guaranteed nahi.")
+          audio, _ = make_sindhi_clear(translated)
           downloads(audio,translated,f"MEHAR_TRANSLATION_{int(time.time())}")
         except Exception as e: st.error(f"Translation voice failed: {e}")
 
 with help_tab:
     st.markdown("""
+### SINDHI CLEAR
+- Sindhi ke 52 harf ke hisab se likho: **ٻ ڄ ڏ ڳ ڪ ڃ ڱ ڻ ٽ ٺ ٿ ڊ ڍ ڌ ڀ ڦ ڇ**
+- **ڪ** = k, **ک** = kh - in ko mix mat karo
+- Jumle ke end pe **۔** lagao taake pause sahi aaye
+- Awaz katne se bachane ke liye text jumla-wise tukron mein banta hai
+- Auto Translate OFF rakho agar text pehle se Sindhi hai
 ### FREE
-- Supported Edge TTS languages: no API key needed; internet required.
-- MP3, WAV conversion and estimated sentence-level SRT.
-- 5 separate text-to-voice boxes.
-### AUTO TRANSLATE
-- Voice Box mein 'Auto Translate karke bolo' tick karo to text pehle Groq se translate hoga, phir bolega.
-- Is ke liye Groq API Key sidebar mein zaroori hai.
-### SINDHI
-- Pehle asli sd-PK voice dhoondi jati hai, na mile to Urdu Asad/Uzma fallback use hota hai.
+- Edge TTS: no API key needed
+- Sindhi Clear: Google sd, free, asli Sindhi ucharan
 ### PRO
-ElevenLabs is optional and may incur charges according to your plan.
+ElevenLabs optional hai.
 """)
 st.divider()
-st.caption("MEHAR V104 WORLD STUDIO — fresh build; V102/V103 originals remain untouched.")
+st.caption("MEHAR V104 WORLD STUDIO — Sindhi Clear Edition")
