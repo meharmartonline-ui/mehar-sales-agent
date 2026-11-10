@@ -1,3 +1,5 @@
-streamlit>=1.36.0
-edge-tts>=6.1.12
-requests>=2.31.0
+streamlit
+edge-tts
+pydub
+mutagen
+requests
