@@ -203,17 +203,24 @@ def downloads(data,text,name):
     with b:
         try:
             if shutil.which("ffmpeg") is None:
-                st.warning("WAV ke liye ffmpeg nahi mila, MP3 hi use karein.")
+                st.download_button("⬇️ WAV (MP3)",data,name+".mp3","audio/mpeg",key="wav"+name)
             else:
                 with tempfile.NamedTemporaryFile(suffix=".mp3",delete=False) as f:
                     f.write(data); mp3_path=f.name
-                wav_path = mp3_path.replace(".mp3",".wav")
-                subprocess.run(["ffmpeg","-y","-i",mp3_path,wav_path], capture_output=True, timeout=30)
-                with open(wav_path,"rb") as wf: wav_bytes = wf.read()
-                st.download_button("⬇️ WAV",wav_bytes,name+".wav","audio/wav",key="wav"+name)
-                try: os.remove(mp3_path); os.remove(wav_path)
+                wav_path = mp3_path + ".wav"
+                res = subprocess.run(["ffmpeg","-y","-i",mp3_path,wav_path], capture_output=True, timeout=30)
+                if res.returncode == 0 and os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
+                    with open(wav_path,"rb") as wf: wav_bytes = wf.read()
+                    st.download_button("⬇️ WAV",wav_bytes,name+".wav","audio/wav",key="wav"+name)
+                else:
+                    st.download_button("⬇️ WAV (MP3)",data,name+".mp3","audio/mpeg",key="wav"+name)
+                try: os.remove(mp3_path)
                 except OSError: pass
-        except Exception as e: st.warning(f"WAV conversion unavailable: {e}")
+                try:
+                    if os.path.exists(wav_path): os.remove(wav_path)
+                except OSError: pass
+        except Exception:
+            st.download_button("⬇️ WAV (MP3)",data,name+".mp3","audio/mpeg",key="wav"+name)
     with c:
         try:
             subs=srt_text(text,duration(data))
