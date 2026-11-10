@@ -1,83 +1,63 @@
 import streamlit as st
-import edge_tts, asyncio, os, io, re, time, tempfile, requests, subprocess, shutil
+import edge_tts, asyncio, os, io, re, time, tempfile, requests, subprocess, shutil, urllib.parse
 from datetime import datetime
 
-# pydub HATA DIYA - Python 3.14 pe crash karta tha
 try:
     from mutagen.mp3 import MP3
 except Exception:
     MP3 = None
 
-try:
-    from gtts import gTTS
-except Exception:
-    gTTS = None
-
 st.set_page_config(page_title="MEHAR V104 WORLD STUDIO", page_icon="🌍", layout="wide")
 st.title("🌍 MEHAR V104 - WORLD STUDIO")
-st.caption("FREE MULTI-LANGUAGE VOICE • SINDHI CLEAR • MP3 / WAV / SRT")
+st.caption("FREE MULTI-LANGUAGE VOICE • SINDHI CLEAR • MP3 / WAV / SRT • TIME SELECT")
 
 # ================= SINDHI ALPHABET FIXER =================
-# Sindhi 52 harf - Urdu se farq: ٻ ڄ ڏ ڳ / ڪ = k, ک = kh / ٽ ٺ ٿ ڊ ڍ ڌ ڀ ڦ ڇ / ڃ ڱ ڻ
-# Urdu keyboard se likhe ghalat harf ko asli Sindhi harf mein badalta hai
 SINDHI_FIX = {
-    "ک": "ڪ",
-    "ہ": "ه",
-    "ے": "ي",
-    "ی": "ي",
-    "کے": "ڪي",
-    "کی": "ڪي",
-    "کا": "ڪا",
-    "کون": "ڪون",
-    "کیا": "ڪيا",
-    "کاپی": "ڪاپي",
-    "کاپي": "ڪاپي",
-    "کارڈ": "ڪارڊ",
-    "کارډ": "ڪارڊ",
-    "شناختی": "شناختي",
-    "تصویر": "تصوير",
-    "سمی": "سميت",
-    "چہرے": "چھري",
-    "گھر": "گھر",
-    "بھی": "بھي",
-    "معذوری": "معذوري",
-    "سرٹیفکیٹ": "سرٽيفڪيٽ",
-    "ھے": "آھي",
-    "ہے": "آھي",
-    "ھیں": "آھن",
-    "تک": "تائين",
+    "ک": "ڪ", "ہ": "ه", "ے": "ي", "ی": "ي",
+    "کے": "ڪي", "کی": "ڪي", "کا": "ڪا", "کون": "ڪون", "کیا": "ڪيا",
+    "کاپی": "ڪاپي", "کاپي": "ڪاپي", "کارڈ": "ڪارڊ", "کارډ": "ڪارڊ",
+    "شناختی": "شناختي", "تصویر": "تصوير", "سمی": "سميت", "چہرے": "چھري",
+    "گھر": "گھر", "بھی": "بھي", "معذوری": "معذوري", "سرٹیفکیٹ": "سرٽيفڪيٽ",
+    "ھے": "آھي", "ہے": "آھي", "ھیں": "آھن", "تک": "تائين",
 }
-
 def clean_sindhi(text):
-    if not text:
-        return text
+    if not text: return text
     for ur, sd in SINDHI_FIX.items():
         text = text.replace(ur, sd)
-    # Faltu space saaf
     text = re.sub(r"\s+", " ", text).strip()
-    # : ko Sindhi full stop banao taake pause sahi aaye
     text = text.replace(":", "۔")
     return text
 
-def split_sindhi_chunks(text, max_len=700):
-    # Awaz katne se bachane ke liye jumla-wise tukre, beech se nahi
+def split_sindhi_chunks(text, max_len=180):
     parts = re.split(r"(?<=[۔؟!.\n])\s+", text)
     chunks, cur = [], ""
     for p in parts:
         p = p.strip()
-        if not p:
-            continue
+        if not p: continue
         if len(cur) + len(p) > max_len and cur:
-            chunks.append(cur.strip())
-            cur = p
+            chunks.append(cur.strip()); cur = p
         else:
             cur = (cur + " " + p).strip()
-    if cur:
-        chunks.append(cur)
+    if cur: chunks.append(cur)
     return [c for c in chunks if c]
 
+def expand_to_duration(text, target_label):
+    secs_map = {"15 Second":15,"30 Second":30,"1 Minute":60,"2 Minute":120,"5 Minute":300,"10 Minute":600}
+    if target_label not in secs_map: return text
+    target = secs_map[target_label]
+    need_chars = target * 13
+    if len(text) >= need_chars:
+        cut = text[:need_chars]
+        last = cut.rfind("۔")
+        if last > 100: cut = cut[:last+1]
+        return cut
+    else:
+        times = int(need_chars / max(1,len(text))) + 1
+        repeated = (" ۔ " + text).join([text]*times)
+        return repeated[:need_chars+200]
+
 def make_sindhi_clear(text):
-    import urllib.parse
+    # gTTS sd support nahi karta, direct Google Translate TTS sd use kar rahe hain
     text = clean_sindhi(text)
     chunks = split_sindhi_chunks(text, max_len=180)
     audios = []
@@ -88,8 +68,7 @@ def make_sindhi_clear(text):
         r = requests.get(url, headers=headers, timeout=20)
         if r.status_code != 200 or len(r.content) < 500:
             r = requests.get(url, headers=headers, timeout=20)
-        if len(r.content) < 500:
-            continue
+        if len(r.content) < 500: continue
         audios.append(r.content)
         time.sleep(0.3)
     if not audios:
@@ -251,7 +230,7 @@ voice_tab,trans_tab,help_tab=st.tabs(["🎙️ VOICE STUDIO","🌐 TRANSLATOR","
 
 with voice_tab:
     st.subheader("Five independent voice boxes")
-    st.info("Sindhi ke liye: Language Sindhi rakho, Engine Sindhi Clear (Google sd) rakho, Auto Translate OFF rakho agar text pehle se Sindhi hai.")
+    st.info("Sindhi ke liye: Language Sindhi, Engine Sindhi Clear (Google sd), Auto Translate OFF agar text pehle se Sindhi hai.")
     for n in range(1,6):
       with st.expander(f"BOX {n}",expanded=(n==1)):
         l,r=st.columns([1.5,1])
@@ -271,14 +250,14 @@ with voice_tab:
 
 جيڪڏھن گھر ۾ ھڪ کان وڌيڪ معذور آھن ته سڀني جي الڳ ڊيٽا ھجي""" if n==1 else ""
           script=st.text_area("Text / Script",value=default_text,height=180,key=f"text{n}")
-          auto_trans = st.checkbox("🔄 Auto Translate karke bolo", value=False, key=f"auto{n}", help="Agar text doosri language mein hai to pehle isi language mein translate hoga, phir bolega.")
+          auto_trans = st.checkbox("🔄 Auto Translate karke bolo", value=False, key=f"auto{n}")
           engine=st.radio("Engine",["Sindhi Clear (Google sd)","Free Edge TTS","ElevenLabs Pro"],horizontal=True,key=f"engine{n}")
         with r:
           gender=st.selectbox("Voice category",["Male","Female"],key=f"gender{n}")
           style=st.selectbox("Character style",list(STYLES),key=f"style{n}")
+          target_time=st.selectbox("⏱️ Target Time",["Auto (Text jitna hai)","15 Second","30 Second","1 Minute","2 Minute","5 Minute","10 Minute"],key=f"dur{n}")
           rate=st.slider("Extra speed",-25,25,0,key=f"rate{n}")
           pitch=st.slider("Extra pitch",-15,15,0,key=f"pitch{n}")
-          # Sindhi Clear ke liye voice list nahi chahiye
           options=get_voices(LANGS[language],gender) if engine=="Free Edge TTS" else []
           selected=st.selectbox("Voice",options,key=f"voice{n}") if options and engine=="Free Edge TTS" else ""
           if engine=="Free Edge TTS" and not options: st.caption("Default voice fallback will be tried if available.")
@@ -287,14 +266,13 @@ with voice_tab:
           else:
             try:
               sr,sp=STYLES[style]
-              final_text = script
-              # AUTO TRANSLATE
+              final_text = expand_to_duration(script, target_time)
               if auto_trans:
                   if not groq_key:
                       st.warning("Auto Translate ke liye Groq Key nahi hai, is liye original text hi bola ja raha hai.")
                   else:
                       with st.spinner(f"Auto Translate ho raha hai -> {language}..."):
-                          final_text = groq_translate(script, language, groq_key, groq_model)
+                          final_text = groq_translate(final_text, language, groq_key, groq_model)
                       st.info(f"Translated: {final_text[:200]}")
               use_engine = engine
               if engine=="ElevenLabs Pro" and (not eleven_key or not eleven_id):
@@ -302,7 +280,6 @@ with voice_tab:
                   use_engine = "Sindhi Clear (Google sd)"
               with st.spinner("Voice generate ho rahi hai..."):
                 if use_engine=="Sindhi Clear (Google sd)":
-                  # Sindhi ke liye best - alphabet fixer + chunking, awaz nahi kategi
                   audio, final_text = make_sindhi_clear(final_text)
                 elif use_engine=="Free Edge TTS":
                   voice=choose_voice(language,gender,selected)
@@ -335,16 +312,21 @@ with trans_tab:
 with help_tab:
     st.markdown("""
 ### SINDHI CLEAR
-- Sindhi ke 52 harf ke hisab se likho: **ٻ ڄ ڏ ڳ ڪ ڃ ڱ ڻ ٽ ٺ ٿ ڊ ڍ ڌ ڀ ڦ ڇ**
-- **ڪ** = k, **ک** = kh - in ko mix mat karo
-- Jumle ke end pe **۔** lagao taake pause sahi aaye
-- Awaz katne se bachane ke liye text jumla-wise tukron mein banta hai
+- Sindhi ke 52 harf: **ٻ ڄ ڏ ڳ ڪ ڃ ڱ ڻ ٽ ٺ ٿ ڊ ڍ ڌ ڀ ڦ ڇ**
+- **ڪ** = k, **ک** = kh
+- Jumle ke end pe **۔** lagao
+- Awaz katne se bachane ke liye 180 harf wale tukre bante hain
 - Auto Translate OFF rakho agar text pehle se Sindhi hai
-### FREE
+### TIME
+- Target Time se 15 sec, 30 sec, 1, 2, 5, 10 min select karo
+- Chhota text hoga to repeat hoga, bara hoga to kaat diya jayega
+### WAV
+- WAV ke liye packages.txt mein `ffmpeg` hona chahiye, phir Reboot karo
+- Agar ffmpeg na ho to WAV (MP3) milega, error nahi aayega
+### FREE / PRO
 - Edge TTS: no API key needed
-- Sindhi Clear: Google sd, free, asli Sindhi ucharan
-### PRO
-ElevenLabs optional hai.
+- Sindhi Clear: Google sd, free
+- ElevenLabs optional hai
 """)
 st.divider()
-st.caption("MEHAR V104 WORLD STUDIO — Sindhi Clear Edition")
+st.caption("MEHAR V104 WORLD STUDIO — Sindhi Clear + Time Edition")
