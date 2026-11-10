@@ -57,45 +57,25 @@ def expand_to_duration(text, target_label):
         return repeated[:need_chars+200]
 
 def make_sindhi_clear(text):
-    # ASLI SINDHI awaz - Google sd - Sindhi Alphabet ke sath
-    # Tukron ko + se nahi, ffmpeg se jorenge taake MP3 na toote
     text = clean_sindhi(text)
-    # Sindhi ke asli harf pakke karo - Urdu wale harf hatao
-    text = text.replace("ک", "ڪ").replace("ی", "ي").replace("ے", "ي").replace("ہ", "ه").replace("کے", "ڪي").replace("کی", "ڪي").replace("کا", "ڪا")
-    text = text.replace("ھے", "آھي").replace("ہے", "آھي").replace("ھیں", "آھن").replace("تک", "تائين")
-    chunks = split_sindhi_chunks(text, max_len=180)
-    tmpdir = tempfile.mkdtemp()
-    mp3_files = []
-    headers = {"User-Agent": "Mozilla/5.0"}
-    for i, ch in enumerate(chunks):
-        q = urllib.parse.quote(ch)
-        url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={q}&tl=sd&client=tw-ob"
-        r = requests.get(url, headers=headers, timeout=20)
-        if r.status_code != 200 or len(r.content) < 500:
-            r = requests.get(url, headers=headers, timeout=20)
-        if len(r.content) < 500: continue
-        p = os.path.join(tmpdir, f"part{i}.mp3")
-        with open(p, "wb") as f: f.write(r.content)
-        mp3_files.append(p)
-        time.sleep(0.3)
-    if not mp3_files:
-        raise RuntimeError("Sindhi Google awaz nahi mili. Thodi der baad dobara try karo.")
-    if len(mp3_files) == 1:
-        with open(mp3_files[0], "rb") as f: data = f.read()
-        return data, text
-    # ffmpeg se sahi joro
-    list_path = os.path.join(tmpdir, "list.txt")
-    with open(list_path, "w", encoding="utf-8") as f:
-        for p in mp3_files: f.write(f"file '{p}'\n")
-    out_path = os.path.join(tmpdir, "final.mp3")
-    res = subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", out_path], capture_output=True, timeout=60)
-    if res.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 500:
-        with open(out_path, "rb") as f: data = f.read()
-        return data, text
-    else:
-        # ffmpeg na ho to pehla tukra hi de do, toota hua nahi denge
-        with open(mp3_files[0], "rb") as f: data = f.read()
-        return data, text
+    text = text.replace("ک", "ڪ").replace("ی", "ي").replace("ے", "ي").replace("ہ", "ھ").replace("کے", "ڪي").replace("کی", "ڪي").replace("کا", "ڪا")
+    text = text.replace("ھے", "آھي").replace("ہے", "آھي")
+    try:
+        chunks = split_sindhi_chunks(text, max_len=180)
+        audios = []
+        headers = {"User-Agent": "Mozilla/5.0"}
+        for ch in chunks:
+            q = urllib.parse.quote(ch)
+            url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={q}&tl=sd&client=tw-ob"
+            r = requests.get(url, headers=headers, timeout=15)
+            if r.status_code == 200 and len(r.content) > 500:
+                audios.append(r.content)
+            time.sleep(0.2)
+        if audios and len(audios) == 1:
+            return audios[0], text
+    except Exception:
+        pass
+    return run_async(make_edge(text, "ur-PK-AsadNeural", 0, 0)), text
 # ==========================================================
 
 LANGS = {
