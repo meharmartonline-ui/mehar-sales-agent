@@ -1,6 +1,8 @@
 import streamlit as st
 import edge_tts, asyncio, os, io, re, time, tempfile, requests
 from datetime import datetime
+from pydub import AudioSegment
+from mutagen.mp3 import MP3
 
 st.set_page_config(page_title="MEHAR V104 WORLD STUDIO", page_icon="🌍", layout="wide")
 st.title("🌍 MEHAR V104 - WORLD STUDIO")
@@ -20,8 +22,11 @@ DEFAULTS = {
  "hi":("hi-IN-MadhurNeural","hi-IN-SwaraNeural"),
  "en":("en-US-GuyNeural","en-US-JennyNeural"),
  "ar":("ar-SA-HamedNeural","ar-SA-ZariyahNeural"),
- "sd":("ur-PK-AsadNeural","ur-PK-UzmaNeural")
+ # SINDHI: pehle asli Sindhi try karo, na mile to Urdu fallback
+ "sd":("sd-PK-DilawerNeural","sd-PK-GulBadanNeural"),
 }
+FALLBACK_SD = ("ur-PK-AsadNeural","ur-PK-UzmaNeural")
+
 STYLES = {
  "Normal":(0,0),"Young Adult":(5,3),"Baby / Child-like (simulation)":(12,12),
  "Old Man (simulation)":(-15,-8),"Old Woman (simulation)":(-10,7),
@@ -48,6 +53,14 @@ def catalogue():
     return run_async(edge_tts.list_voices())
 
 def get_voices(lang, gender):
+    # SINDHI VOICE WALA FIX
+    if lang == "sd":
+        try:
+            real = [v["ShortName"] for v in catalogue() if v.get("Locale","").lower().startswith("sd") and v.get("Gender","").lower()==gender.lower()]
+            if real: return sorted(set(real))
+        except Exception: pass
+        # Agar asli Sindhi na mili to Urdu fallback
+        return [FALLBACK_SD[0]] if gender=="Male" else [FALLBACK_SD[1]]
     try:
         result=[]
         for v in catalogue():
@@ -59,9 +72,11 @@ def get_voices(lang, gender):
 
 def choose_voice(label, gender, selected=""):
     lang=LANGS[label]
-    if selected: return selected, lang=="sd"
+    if selected: return selected, lang=="sd" and "ur-PK" in selected
     found=get_voices(lang,gender)
-    if found: return found[0], False
+    if found:
+        is_fallback = lang=="sd" and "ur-PK" in found[0]
+        return found[0], is_fallback
     if lang in DEFAULTS: return DEFAULTS[lang][0 if gender=="Male" else 1], lang=="sd"
     raise RuntimeError(f"{label}: {gender} free voice catalogue mein available nahi.")
 
@@ -120,7 +135,7 @@ def downloads(data,text,name):
         except Exception as e: st.warning(f"SRT error: {e}")
 
 def groq_translate(text,target,key,model):
-    if not key: raise ValueError("Translation ke liye Groq API key sidebar mein add karein.")
+    if not key: raise ValueError("Auto Translate ke liye Groq API key sidebar mein add karein.")
     r=requests.post("https://api.groq.com/openai/v1/chat/completions",
       headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
       json={"model":model,"temperature":0.2,"messages":[
@@ -150,6 +165,8 @@ with voice_tab:
         with l:
           language=st.selectbox("Language",list(LANGS),index=list(LANGS).index("Urdu (اردو)"),key=f"lang{n}")
           script=st.text_area("Text / Script",value="السلام علیکم! MEHAR WORLD STUDIO میں خوش آمدید۔" if n==1 else "",height=125,key=f"text{n}")
+          # --- AUTO TRANSLATE WALA NAYA OPTION ---
+          auto_trans = st.checkbox("🔄 Auto Translate karke bolo", value=False, key=f"auto{n}", help="Agar text doosri language mein hai to pehle isi language mein translate hoga, phir bolega. Is ke liye Groq Key chahiye.")
           engine=st.radio("Engine",["Free Edge TTS","ElevenLabs Pro"],horizontal=True,key=f"engine{n}")
         with r:
           gender=st.selectbox("Voice category",["Male","Female"],key=f"gender{n}")
@@ -157,7 +174,6 @@ with voice_tab:
           rate=st.slider("Extra speed",-25,25,0,key=f"rate{n}")
           pitch=st.slider("Extra pitch",-15,15,0,key=f"pitch{n}")
           options=get_voices(LANGS[language],gender) if engine=="Free Edge TTS" else []
-          if LANGS[language]=="sd": options=["ur-PK-AsadNeural","ur-PK-UzmaNeural"]
           selected=st.selectbox("Voice",options,key=f"voice{n}") if options and engine=="Free Edge TTS" else ""
           if engine=="Free Edge TTS" and not options: st.caption("Default voice fallback will be tried if available.")
         if st.button(f"▶️ GENERATE BOX {n}",type="primary",key=f"go{n}"):
@@ -165,17 +181,30 @@ with voice_tab:
           else:
             try:
               sr,sp=STYLES[style]
+              final_text = script
+              # --- AUTO TRANSLATE LOGIC ---
+              if auto_trans:
+                  if not groq_key:
+                      st.warning("Auto Translate ke liye Groq Key nahi hai, is liye original text hi bola ja raha hai.")
+                  else:
+                      with st.spinner(f"Auto Translate ho raha hai -> {language}..."):
+                          final_text = groq_translate(script, language, groq_key, groq_model)
+                      st.info(f"Translated: {final_text[:200]}")
+              use_engine = engine
+              if engine=="ElevenLabs Pro" and (not eleven_key or not eleven_id):
+                  st.warning("ElevenLabs key / Voice ID khali hai, is liye Free Edge TTS use ho raha hai.")
+                  use_engine = "Free Edge TTS"
               with st.spinner("Voice generate ho rahi hai..."):
-                if engine=="Free Edge TTS":
+                if use_engine=="Free Edge TTS":
                   voice,is_sd_fallback=choose_voice(language,gender,selected)
-                  audio=run_async(make_edge(script,voice,max(-50,min(50,sr+rate)),max(-50,min(50,sp+pitch))))
+                  audio=run_async(make_edge(final_text,voice,max(-50,min(50,sr+rate)),max(-50,min(50,sp+pitch))))
                 else:
                   is_sd_fallback=False
-                  audio=make_eleven(script,eleven_key,eleven_id,eleven_model)
+                  audio=make_eleven(final_text,eleven_key,eleven_id,eleven_model)
               if is_sd_fallback:
                 st.warning("Sindhi text Urdu voice se read hua. Yeh fallback hai, genuine Sindhi TTS nahi.")
               st.success(f"BOX {n}: Audio ready!")
-              downloads(audio,script,f"MEHAR_V104_BOX{n}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+              downloads(audio,final_text,f"MEHAR_V104_BOX{n}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
             except Exception as e: st.error(f"Voice generation failed: {e}")
 
 with trans_tab:
@@ -213,21 +242,17 @@ with help_tab:
 - Male/Female voice selection where catalogue offers them.
 - MP3, WAV conversion and estimated sentence-level SRT.
 - 5 separate text-to-voice boxes.
-
+### AUTO TRANSLATE
+- Voice Box mein 'Auto Translate karke bolo' tick karo to text pehle Groq se translate hoga, phir bolega.
+- Is ke liye Groq API Key sidebar mein zaroori hai.
 ### SINDHI
-- Free dedicated Sindhi neural voice is not confirmed in Edge voice catalogue.
-- Sindhi selection uses Urdu Asad/Uzma fallback only. This may pronounce Sindhi words incorrectly.
+- Pehle asli sd-PK voice dhoondi jati hai, na mile to Urdu Asad/Uzma fallback use hota hai.
 - For authentic Sindhi, use a provider that explicitly supports Sindhi and configure its voice ID.
-
 ### CHARACTER STYLES
 Baby, Old Man, Old Woman, Deep Male and Bright Female are rate/pitch simulations, not actual age-specific voices.
-
 ### PRO
 ElevenLabs is optional and may incur charges according to your plan. Configure API key and Voice ID.
 Groq is only used for translation; it is not needed for free TTS.
-
-### LIMITATIONS
-Edge TTS needs internet and third-party service availability. SRT timing is estimated per sentence, not word-aligned. WAV is converted from MP3.
 """)
 st.divider()
 st.caption("MEHAR V104 WORLD STUDIO — fresh build; V102/V103 originals remain untouched.")
